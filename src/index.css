@@ -1,15 +1,6 @@
-@import 'tailwindcss';
-
-@theme {
-  /* Colorimetría oficial Grupo Leucotec (extraída del logo) */
-  --color-brand-primary: #dc052b; /* rojo institucional (espiral) */
-  --color-brand-primary-dark: #9e0420; /* rojo profundo para degradados */
-  --color-brand-secondary: #73797d; /* gris corporativo (texto del logo) */
-  --color-brand-dark: #4a4f52; /* gris oscuro para títulos */
-  --color-brand-accent: #10b981; /* verde para ahorro/positivo */
-  --color-brand-danger: #dc052b; /* rojo = pérdida/riesgo (mismo que marca) */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   html {
