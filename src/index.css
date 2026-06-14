@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand-primary: #004a8f;
+  --color-brand-secondary: #00a8e8;
+  --color-brand-accent: #00d1b2;
+  --color-brand-danger: #ff3860;
+  --color-brand-dark: #2c3e50;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    margin: 0;
+  }
+  /* Oculta las flechas de los inputs numéricos para una UI más limpia */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+/* Al exportar a PDF se oculta el panel de inputs y se limpia el fondo */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
