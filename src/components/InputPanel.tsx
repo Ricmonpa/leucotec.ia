@@ -14,7 +14,7 @@ export function InputPanel({
   setEnfermedadCampo,
 }: InputPanelProps) {
   return (
-    <section className="no-print rounded-2xl border border-slate-100 bg-white p-6 shadow-xl lg:col-span-4">
+    <section className="no-print order-2 rounded-2xl border border-slate-100 bg-white p-5 shadow-xl sm:p-6 lg:order-1 lg:col-span-4">
       <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-brand-dark">
         <Building2 className="h-5 w-5 text-brand-secondary" />
         Parámetros del Cliente

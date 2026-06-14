@@ -8,27 +8,27 @@ interface HeaderProps {
 
 export function Header({ empresa, onExport, onReset }: HeaderProps) {
   return (
-    <header className="mb-8 flex flex-col items-start gap-4 border-b-2 border-slate-200 pb-5 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-4">
+    <header className="mb-6 flex flex-col gap-4 border-b-2 border-slate-200 pb-4 md:mb-8 md:flex-row md:items-center md:justify-between md:pb-5">
+      <div className="flex items-center gap-3">
         <img
           src="/logo-leucotec.png"
           alt="Grupo Leucotec"
-          className="h-9 w-auto md:h-11"
+          className="h-7 w-auto sm:h-9 md:h-11"
         />
-        <div className="border-l border-slate-200 pl-4">
+        <div className="hidden border-l border-slate-200 pl-3 sm:block">
           <h1 className="text-sm font-bold uppercase tracking-wider text-brand-dark md:text-base">
             Analítica Corporativa
           </h1>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Simulador de Riesgo Financiero Biológico
+          <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400 md:text-xs">
+            Simulador de Riesgo Financiero
           </p>
         </div>
       </div>
 
-      <div className="flex w-full items-center gap-3 md:w-auto">
-        <div className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-2 shadow-sm md:flex-none">
-          <span className="mr-2 text-sm text-slate-500">Prospecto:</span>
-          <span className="font-bold text-brand-dark">{empresa}</span>
+      <div className="flex w-full items-center gap-2 md:w-auto md:gap-3">
+        <div className="flex min-w-0 flex-1 items-baseline rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm md:flex-none">
+          <span className="mr-2 shrink-0 text-sm text-slate-500">Prospecto:</span>
+          <span className="truncate font-bold text-brand-dark">{empresa}</span>
         </div>
         <button
           onClick={onReset}
