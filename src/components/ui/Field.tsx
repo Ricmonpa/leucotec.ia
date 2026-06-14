@@ -27,8 +27,8 @@ type FieldProps = TextFieldProps | NumberFieldProps;
 
 const inputBase =
   'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-800 ' +
-  'transition-all focus:border-brand-secondary focus:bg-white focus:outline-none ' +
-  'focus:ring-2 focus:ring-brand-secondary/40';
+  'transition-all focus:border-brand-primary focus:bg-white focus:outline-none ' +
+  'focus:ring-2 focus:ring-brand-primary/30';
 
 export function Field(props: FieldProps) {
   const { label, hint, className } = props;

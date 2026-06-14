@@ -1,4 +1,4 @@
-import { ShieldCheck, FileDown, RotateCcw } from 'lucide-react';
+import { FileDown, RotateCcw } from 'lucide-react';
 
 interface HeaderProps {
   empresa: string;
@@ -10,14 +10,16 @@ export function Header({ empresa, onExport, onReset }: HeaderProps) {
   return (
     <header className="mb-8 flex flex-col items-start gap-4 border-b-2 border-slate-200 pb-5 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary shadow-lg">
-          <ShieldCheck className="h-7 w-7 text-white" strokeWidth={2} />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-brand-primary md:text-2xl">
-            Leucotec Analítica Corporativa
+        <img
+          src="/logo-leucotec.png"
+          alt="Grupo Leucotec"
+          className="h-9 w-auto md:h-11"
+        />
+        <div className="border-l border-slate-200 pl-4">
+          <h1 className="text-sm font-bold uppercase tracking-wider text-brand-dark md:text-base">
+            Analítica Corporativa
           </h1>
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 md:text-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Simulador de Riesgo Financiero Biológico
           </p>
         </div>

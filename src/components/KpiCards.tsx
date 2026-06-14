@@ -44,20 +44,20 @@ export function KpiCards({ resultado }: KpiCardsProps) {
       </div>
 
       {/* Ahorro neto — el gancho */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-primary to-brand-secondary p-6 text-white shadow-xl transition-transform duration-300 hover:scale-[1.03]">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-primary to-brand-primary-dark p-6 text-white shadow-xl transition-transform duration-300 hover:scale-[1.03]">
         <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white opacity-10 blur-2xl" />
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-100">
+          <p className="text-sm font-semibold uppercase tracking-wide text-white/80">
             Ahorro Operativo Neto
           </p>
-          <p className="mb-2 text-xs text-blue-200">Impacto directo a utilidades</p>
+          <p className="mb-2 text-xs text-white/70">Impacto directo a utilidades</p>
         </div>
         <p className="text-4xl font-black drop-shadow-md">
           {formatCurrency(resultado.ahorroNetoTotal)}
         </p>
         <div
           className={`mt-4 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold text-white shadow-inner ${
-            roiPositivo ? 'bg-brand-accent' : 'bg-brand-danger'
+            roiPositivo ? 'bg-brand-accent' : 'bg-brand-dark'
           }`}
         >
           <TrendingUp className="h-4 w-4" />

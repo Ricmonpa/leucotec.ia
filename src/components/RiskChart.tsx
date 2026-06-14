@@ -64,13 +64,13 @@ export function RiskChart({ resultado }: RiskChartProps) {
             <Legend iconType="circle" wrapperStyle={{ paddingTop: '16px' }} />
             <Bar
               dataKey="Pérdida por Ausentismo"
-              fill="#FF3860"
+              fill="#DC052B"
               radius={[6, 6, 0, 0]}
               maxBarSize={48}
             />
             <Bar
               dataKey="Inversión Preventiva"
-              fill="#00A8E8"
+              fill="#73797D"
               radius={[6, 6, 0, 0]}
               maxBarSize={48}
             />
@@ -78,7 +78,7 @@ export function RiskChart({ resultado }: RiskChartProps) {
               {data.map((d, i) => (
                 <Cell
                   key={i}
-                  fill={d['Ahorro Neto'] >= 0 ? '#00D1B2' : '#FF3860'}
+                  fill={d['Ahorro Neto'] >= 0 ? '#10B981' : '#DC052B'}
                 />
               ))}
             </Bar>
