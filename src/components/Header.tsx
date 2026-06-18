@@ -23,6 +23,15 @@ export function Header({ empresa, onExport, onReset }: HeaderProps) {
             Simulador de Riesgo Financiero
           </p>
         </div>
+        <div className="hidden items-center gap-1.5 border-l border-slate-200 pl-3 sm:flex">
+          <span className="text-[10px] text-slate-400">by</span>
+          <span
+            className="inline-flex items-center rounded-md p-0.5"
+            style={{ background: 'linear-gradient(135deg, #1F2A44 0%, #D6443B 100%)' }}
+          >
+            <img src="/n3-logo.png" alt="N3 Thinktech IA Laboratory" className="h-5 w-auto" />
+          </span>
+        </div>
       </div>
 
       <div className="flex w-full items-center gap-2 md:w-auto md:gap-3">

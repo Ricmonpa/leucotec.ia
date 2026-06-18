@@ -39,20 +39,6 @@ function App() {
           </section>
         </main>
 
-        <footer className="no-print mt-8 flex items-center justify-center gap-2 border-t border-slate-200 pt-4 pb-2">
-          <span className="text-xs text-slate-400">Desarrollado por</span>
-          <span
-            className="inline-flex items-center rounded-lg p-1"
-            style={{ background: 'linear-gradient(135deg, #1F2A44 0%, #D6443B 100%)' }}
-          >
-            <img
-              src="/n3-logo.png"
-              alt="N3 Thinktech IA Laboratory"
-              className="h-6 w-auto"
-            />
-          </span>
-          <span className="text-xs font-medium text-slate-500">Thinktech IA Laboratory</span>
-        </footer>
       </div>
     </div>
   );
