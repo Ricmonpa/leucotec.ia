@@ -38,6 +38,16 @@ function App() {
             <PredictiveAlert empresa={empresa.empresa} resultado={resultado} />
           </section>
         </main>
+
+        <footer className="no-print mt-8 flex items-center justify-center gap-2 border-t border-slate-200 pt-4 pb-2">
+          <span className="text-xs text-slate-400">Desarrollado por</span>
+          <img
+            src="/n3-logo.png"
+            alt="N3 Thinktech IA Laboratory"
+            className="h-6 w-auto opacity-80"
+          />
+          <span className="text-xs font-medium text-slate-500">Thinktech IA Laboratory</span>
+        </footer>
       </div>
     </div>
   );
