@@ -3,9 +3,13 @@ import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
 import { RiskChart } from './components/RiskChart';
 import { PredictiveAlert } from './components/PredictiveAlert';
+import { MaintenancePage } from './components/MaintenancePage';
 import { useRoiCalculator } from './hooks/useRoiCalculator';
 
+const MAINTENANCE_MODE = true; // ← cambia a false para restaurar el sitio
+
 function App() {
+  if (MAINTENANCE_MODE) return <MaintenancePage />;
   const {
     empresa,
     enfermedades,
