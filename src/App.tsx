@@ -1,15 +1,28 @@
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
 import { RiskChart } from './components/RiskChart';
 import { PredictiveAlert } from './components/PredictiveAlert';
-import { MaintenancePage } from './components/MaintenancePage';
+import { LoginGate } from './components/LoginGate';
 import { useRoiCalculator } from './hooks/useRoiCalculator';
 
-const MAINTENANCE_MODE = true; // ← cambia a false para restaurar el sitio
-
 function App() {
-  if (MAINTENANCE_MODE) return <MaintenancePage />;
+  const [authed, setAuthed] = useState(
+    () => sessionStorage.getItem('leucotec_auth') === '1'
+  );
+
+  function handleAuth() {
+    sessionStorage.setItem('leucotec_auth', '1');
+    setAuthed(true);
+  }
+
+  if (!authed) return <LoginGate onAuth={handleAuth} />;
+
+  return <Simulator />;
+}
+
+function Simulator() {
   const {
     empresa,
     enfermedades,
@@ -42,7 +55,6 @@ function App() {
             <PredictiveAlert empresa={empresa.empresa} resultado={resultado} />
           </section>
         </main>
-
       </div>
     </div>
   );
