@@ -24,6 +24,10 @@ export interface ParametrosEmpresa {
 export interface ParametrosEnfermedad {
   /** Etiqueta para UI y gráficos, p.ej. "Neumococo". */
   nombre: string;
+  /** Si está incluida en la campaña que se cotiza. Las inactivas no suman. */
+  activa: boolean;
+  /** Justificación del supuesto, para defenderlo ante el CFO. */
+  nota?: string;
   /** Tasa de contagio anual dentro de la población en riesgo (0-1). */
   tasaContagio: number;
   /** Días de ausentismo promedio por caso. */
@@ -96,7 +100,10 @@ export function calcularSimulacion(
   empresa: ParametrosEmpresa,
   enfermedades: ParametrosEnfermedad[],
 ): ResultadoSimulacion {
-  const detalle = enfermedades.map((e) => calcularEnfermedad(empresa, e));
+  // Sólo las vacunas incluidas en la campaña entran al cálculo.
+  const detalle = enfermedades
+    .filter((e) => e.activa)
+    .map((e) => calcularEnfermedad(empresa, e));
 
   const costoAusentismoTotal = detalle.reduce((s, d) => s + d.costoAusentismo, 0);
   const inversionTotal = detalle.reduce((s, d) => s + d.inversionVacunas, 0);
