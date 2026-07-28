@@ -4,6 +4,7 @@ import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
 import { RiskChart } from './components/RiskChart';
 import { PredictiveAlert } from './components/PredictiveAlert';
+import { ReferenciaEdades } from './components/ReferenciaEdades';
 import { LoginGate } from './components/LoginGate';
 import { useRoiCalculator } from './hooks/useRoiCalculator';
 
@@ -53,6 +54,7 @@ function Simulator() {
             <KpiCards resultado={resultado} />
             <RiskChart resultado={resultado} />
             <PredictiveAlert empresa={empresa.empresa} resultado={resultado} />
+            <ReferenciaEdades />
           </section>
         </main>
       </div>
