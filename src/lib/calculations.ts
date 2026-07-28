@@ -18,6 +18,16 @@ export interface ParametrosEmpresa {
   numEmpleados: number;
   costoHora: number;
   horasJornada: number;
+  /** Si se incluye el beneficio fiscal en la propuesta. */
+  aplicarBeneficioFiscal: boolean;
+  /**
+   * Fracción del gasto que resulta deducible como previsión social (0-1).
+   * Art. 28 fr. XXX LISR: 47% o 53% según se mantengan las prestaciones
+   * exentas respecto del ejercicio anterior.
+   */
+  pctDeducible: number;
+  /** Tasa de ISR corporativo (0-1). En México, 30%. */
+  tasaISR: number;
 }
 
 /** Supuestos epidemiológicos y de costo de una enfermedad concreta. */
@@ -58,9 +68,20 @@ export interface ResultadoEnfermedad {
 export interface ResultadoSimulacion {
   detalle: ResultadoEnfermedad[];
   costoAusentismoTotal: number;
+  /** Pérdida evitada por la campaña, antes de restar la inversión. */
+  perdidaEvitadaTotal: number;
+  /** Inversión bruta en vacunas (lo que se factura). */
   inversionTotal: number;
+  /**
+   * ISR que la empresa deja de pagar por deducir el gasto como previsión
+   * social. Es 0 si el beneficio fiscal no está aplicado.
+   */
+  ahorroFiscal: number;
+  /** Costo real de la campaña después del efecto fiscal. */
+  inversionNeta: number;
+  /** Ahorro neto = pérdida evitada - inversión neta. */
   ahorroNetoTotal: number;
-  /** ROI global en porcentaje: ahorro neto / inversión * 100. */
+  /** ROI global en porcentaje: ahorro neto / inversión neta * 100. */
   roiGlobal: number;
 }
 
@@ -106,15 +127,27 @@ export function calcularSimulacion(
     .map((e) => calcularEnfermedad(empresa, e));
 
   const costoAusentismoTotal = detalle.reduce((s, d) => s + d.costoAusentismo, 0);
+  const perdidaEvitadaTotal = detalle.reduce((s, d) => s + d.perdidaEvitada, 0);
   const inversionTotal = detalle.reduce((s, d) => s + d.inversionVacunas, 0);
-  const ahorroNetoTotal = detalle.reduce((s, d) => s + d.ahorroNeto, 0);
+
+  // Efecto fiscal: la deducción reduce la BASE gravable, no el impuesto.
+  // El flujo que la empresa se ahorra es (gasto deducible) x (tasa de ISR).
+  const ahorroFiscal = empresa.aplicarBeneficioFiscal
+    ? inversionTotal * empresa.pctDeducible * empresa.tasaISR
+    : 0;
+
+  const inversionNeta = inversionTotal - ahorroFiscal;
+  const ahorroNetoTotal = perdidaEvitadaTotal - inversionNeta;
   const roiGlobal =
-    inversionTotal > 0 ? (ahorroNetoTotal / inversionTotal) * 100 : 0;
+    inversionNeta > 0 ? (ahorroNetoTotal / inversionNeta) * 100 : 0;
 
   return {
     detalle,
     costoAusentismoTotal,
+    perdidaEvitadaTotal,
     inversionTotal,
+    ahorroFiscal,
+    inversionNeta,
     ahorroNetoTotal,
     roiGlobal,
   };

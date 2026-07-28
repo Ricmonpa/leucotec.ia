@@ -1,4 +1,4 @@
-import { TrendingDown, Wallet, TrendingUp } from 'lucide-react';
+import { TrendingDown, Wallet, TrendingUp, Landmark } from 'lucide-react';
 import { formatCurrency, type ResultadoSimulacion } from '../lib/calculations';
 
 interface KpiCardsProps {
@@ -8,6 +8,7 @@ interface KpiCardsProps {
 export function KpiCards({ resultado }: KpiCardsProps) {
   const roi = resultado.roiGlobal.toFixed(1);
   const roiPositivo = resultado.roiGlobal >= 0;
+  const conFiscal = resultado.ahorroFiscal > 0;
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -38,9 +39,28 @@ export function KpiCards({ resultado }: KpiCardsProps) {
           </div>
           <p className="mb-2 text-xs text-slate-400">Campaña integral de vacunación</p>
         </div>
-        <p className="text-3xl font-bold text-brand-secondary">
-          {formatCurrency(resultado.inversionTotal)}
-        </p>
+
+        {conFiscal ? (
+          <div>
+            <p className="text-2xl font-bold text-slate-400 line-through decoration-1">
+              {formatCurrency(resultado.inversionTotal)}
+            </p>
+            <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-emerald-600">
+              <Landmark className="h-3.5 w-3.5" />
+              Recupera {formatCurrency(resultado.ahorroFiscal)} de ISR
+            </p>
+            <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-400">
+              Costo real
+            </p>
+            <p className="text-3xl font-bold text-brand-secondary">
+              {formatCurrency(resultado.inversionNeta)}
+            </p>
+          </div>
+        ) : (
+          <p className="text-3xl font-bold text-brand-secondary">
+            {formatCurrency(resultado.inversionTotal)}
+          </p>
+        )}
       </div>
 
       {/* Ahorro neto — el gancho */}
