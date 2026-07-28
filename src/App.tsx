@@ -1,24 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
 import { RiskChart } from './components/RiskChart';
 import { PredictiveAlert } from './components/PredictiveAlert';
 import { ReferenciaEdades } from './components/ReferenciaEdades';
-import { LoginGate } from './components/LoginGate';
+import { LeadGate } from './components/LeadGate';
+import {
+  esSesionNueva,
+  leerLead,
+  notificarAcceso,
+  type Lead,
+} from './lib/lead';
 import { useRoiCalculator } from './hooks/useRoiCalculator';
 
 function App() {
-  const [authed, setAuthed] = useState(
-    () => sessionStorage.getItem('leucotec_auth') === '1'
-  );
+  const [lead, setLead] = useState<Lead | null>(leerLead);
 
-  function handleAuth() {
-    sessionStorage.setItem('leucotec_auth', '1');
-    setAuthed(true);
-  }
+  // Quien ya se registró en este equipo entra directo, pero avisamos una vez
+  // por sesión para saber que volvió.
+  useEffect(() => {
+    const guardado = leerLead();
+    if (guardado && esSesionNueva()) {
+      notificarAcceso(guardado, 'regreso');
+    }
+  }, []);
 
-  if (!authed) return <LoginGate onAuth={handleAuth} />;
+  if (!lead) return <LeadGate onRegistro={setLead} />;
 
   return <Simulator />;
 }
