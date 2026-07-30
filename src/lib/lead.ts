@@ -17,7 +17,7 @@ const NTFY_TOPIC = 'leucotec-roi-n3lab-demo';
 
 // URL del Google Apps Script Web App.
 // Reemplaza este valor con la URL que obtienes al publicar el script.
-const GOOGLE_SHEET_URL =
+const GOOGLE_SHEET_URL: string =
   'https://script.google.com/a/macros/potenttial.com/s/AKfycbyKT5-nMu8QV5E6SyrGaCZq0cOl0TEye2YV4xN_0bU-LS-LG-VgrAVrzQn09Q3IPYA0/exec';
 
 export interface Lead {
