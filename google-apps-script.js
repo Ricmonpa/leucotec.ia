@@ -1,18 +1,20 @@
 // Google Apps Script — Leucotec ROI Sheet API
 // Pega este código en: Extensiones → Apps Script
-// Publica como Web App: Ejecutar como "Yo", Acceso "Cualquier persona"
+// Publica como Web App:
+//   - Ejecutar como: Yo (tu cuenta)
+//   - Quién tiene acceso: Cualquier persona
 
-function doGet(e) {
+function doPost(e) {
   try {
-    var params = e.parameter;
+    var datos = JSON.parse(e.postData.contents);
     var hoja = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
     hoja.appendRow([
-      params.fecha    || '',
-      params.nombre   || '',
-      params.correo   || '',
-      params.whatsapp || '',
-      params.tipo     || '',
+      datos.fecha    || '',
+      datos.nombre   || '',
+      datos.correo   || '',
+      datos.whatsapp || '',
+      datos.tipo     || '',
     ]);
 
     return ContentService
@@ -26,7 +28,8 @@ function doGet(e) {
   }
 }
 
-function doPost(e) {
-  // Mantener compatibilidad por si se llama vía POST en el futuro.
-  return doGet(e);
+function doGet(e) {
+  return ContentService
+    .createTextOutput("Leucotec ROI Sheet API activa.")
+    .setMimeType(ContentService.MimeType.TEXT);
 }

@@ -72,17 +72,18 @@ export async function registrarEnSheets(
   if (GOOGLE_SHEET_URL === 'PEGA_AQUI_LA_URL_DEL_APPS_SCRIPT') return;
 
   try {
-    const params = new URLSearchParams({
-      fecha: fechaMX(),
-      nombre: lead.nombre,
-      correo: lead.correo,
-      whatsapp: lead.whatsapp,
-      tipo,
-    });
-    // GET evita el preflight CORS que bloquea a Apps Script con POST/no-cors.
-    await fetch(`${GOOGLE_SHEET_URL}?${params.toString()}`, {
-      method: 'GET',
+    // text/plain evita el preflight CORS; Apps Script lo recibe en e.postData.contents
+    await fetch(GOOGLE_SHEET_URL, {
+      method: 'POST',
       mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        fecha: fechaMX(),
+        nombre: lead.nombre,
+        correo: lead.correo,
+        whatsapp: lead.whatsapp,
+        tipo,
+      }),
     });
   } catch {
     // Sin conexión o script caído: el usuario entra igual.
