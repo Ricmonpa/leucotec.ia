@@ -4,10 +4,13 @@ import {
   esSesionNueva,
   guardarLead,
   notificarAcceso,
+  registrarEnSheets,
   type Lead,
 } from '../lib/lead';
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Acepta formatos: +52 55 1234 5678 · 5512345678 · (55) 1234-5678, etc.
+const WHATSAPP_VALIDO = /^[\d\s\(\)\+\-]{7,20}$/;
 
 interface LeadGateProps {
   onRegistro: (lead: Lead) => void;
@@ -16,6 +19,7 @@ interface LeadGateProps {
 export function LeadGate({ onRegistro }: LeadGateProps) {
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
 
@@ -30,15 +34,27 @@ export function LeadGate({ onRegistro }: LeadGateProps) {
       setError('Revisa tu correo, parece incompleto.');
       return;
     }
+    if (!WHATSAPP_VALIDO.test(whatsapp.trim())) {
+      setError('Escribe un número de WhatsApp válido.');
+      return;
+    }
 
-    const lead: Lead = { nombre: nombre.trim(), correo: correo.trim() };
+    const lead: Lead = {
+      nombre: nombre.trim(),
+      correo: correo.trim(),
+      whatsapp: whatsapp.trim(),
+    };
 
     setEnviando(true);
     guardarLead(lead);
     // Consume el marcador de sesión: el aviso de "nuevo" ya cubre esta visita,
     // así un refresh no dispara además un aviso de "regreso".
     esSesionNueva();
-    await notificarAcceso(lead, 'nuevo');
+    // Enviar en paralelo a Sheets y a ntfy para no bloquear el acceso.
+    await Promise.all([
+      registrarEnSheets(lead, 'nuevo'),
+      notificarAcceso(lead, 'nuevo'),
+    ]);
     onRegistro(lead);
   }
 
@@ -100,6 +116,28 @@ export function LeadGate({ onRegistro }: LeadGateProps) {
               }}
               autoComplete="email"
               placeholder="nombre@empresa.com"
+              required
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-300 focus:border-brand-primary focus:bg-white focus:ring-2 focus:ring-brand-primary/20"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="lead-whatsapp"
+              className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
+              WhatsApp
+            </label>
+            <input
+              id="lead-whatsapp"
+              type="tel"
+              value={whatsapp}
+              onChange={(e) => {
+                setWhatsapp(e.target.value);
+                setError('');
+              }}
+              autoComplete="tel"
+              placeholder="+52 55 1234 5678"
               required
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-300 focus:border-brand-primary focus:bg-white focus:ring-2 focus:ring-brand-primary/20"
             />
