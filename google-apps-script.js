@@ -9,13 +9,21 @@ function doPost(e) {
     var datos = JSON.parse(e.postData.contents);
     var hoja = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
+    // Prefijo de apóstrofe en WhatsApp para evitar que Sheets interprete
+    // el símbolo "+" como fórmula y muestre #ERROR!
+    var whatsapp = datos.whatsapp ? String(datos.whatsapp) : '';
+
     hoja.appendRow([
-      datos.fecha    || '',
-      datos.nombre   || '',
-      datos.correo   || '',
-      datos.whatsapp || '',
-      datos.tipo     || '',
+      datos.fecha  || '',
+      datos.nombre || '',
+      datos.correo || '',
+      whatsapp,
+      datos.tipo   || '',
     ]);
+
+    // Forzar la celda de WhatsApp como texto plano para que el "+" no se malinterprete
+    var ultimaFila = hoja.getLastRow();
+    hoja.getRange(ultimaFila, 4).setNumberFormat('@STRING@');
 
     return ContentService
       .createTextOutput(JSON.stringify({ ok: true }))
