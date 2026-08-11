@@ -9,7 +9,9 @@ interface KpiCardsProps {
 export function KpiCards({ resultado }: KpiCardsProps) {
   // Los números corren hasta su valor final: el cálculo ya está hecho, sólo
   // se revela con movimiento para que se lea como un motor trabajando.
-  const perdida = useCountUp(resultado.costoAusentismoTotal);
+  const perdida = useCountUp(resultado.costoTotalExpuesto);
+  const ausentismo = useCountUp(resultado.costoAusentismoTotal);
+  const medico = useCountUp(resultado.costoMedicoTotal);
   const inversion = useCountUp(resultado.inversionTotal);
   const fiscal = useCountUp(resultado.ahorroFiscal);
   const neta = useCountUp(resultado.inversionNeta);
@@ -31,11 +33,17 @@ export function KpiCards({ resultado }: KpiCardsProps) {
               Pérdida Proyectada
             </p>
           </div>
-          <p className="mb-2 text-xs text-slate-400">Por ausentismo no mitigado</p>
+          <p className="mb-2 text-xs text-slate-400">Ausentismo + atención médica</p>
         </div>
-        <p className="text-3xl font-bold text-slate-800">
-          {formatCurrency(perdida)}
-        </p>
+        <div>
+          <p className="text-3xl font-bold text-slate-800">
+            {formatCurrency(perdida)}
+          </p>
+          <p className="mt-2 text-[11px] leading-snug text-slate-400">
+            {formatCurrency(ausentismo)} en días perdidos ·{' '}
+            {formatCurrency(medico)} en atención
+          </p>
+        </div>
       </div>
 
       {/* Inversión */}

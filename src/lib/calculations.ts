@@ -4,7 +4,11 @@
 // Modelo coherente y defendible ante un CFO:
 //   1. Se define una "población en riesgo" (a quién tiene sentido vacunar).
 //   2. Los casos esperados surgen de esa población * tasa de contagio.
-//   3. La pérdida = casos * días de ausencia * costo/día de un empleado.
+//   3. Cada caso cuesta por dos vías:
+//        a) ausentismo = días de ausencia * costo/día del empleado
+//        b) atención médica = consultas, estudios, hospitalización
+//      Contar sólo (a) subvalúa sistemáticamente las vacunas caras contra
+//      eventos graves: su beneficio no está en los días, está en la factura.
 //   4. La inversión = población en riesgo * costo de la dosis.
 //   5. El ahorro neto = pérdida evitada (según efectividad) - inversión.
 //
@@ -42,6 +46,12 @@ export interface ParametrosEnfermedad {
   tasaContagio: number;
   /** Días de ausentismo promedio por caso. */
   diasAusencia: number;
+  /**
+   * Costo médico promedio de un caso: consultas, estudios, medicamentos y la
+   * proporción de casos que hospitalizan. Es el costo que el ausentismo por sí
+   * solo no ve, y el que sostiene a las vacunas caras contra eventos graves.
+   */
+  costoMedicoPorCaso: number;
   /** Costo de la dosis (campaña completa) por empleado vacunado. */
   costoDosis: number;
   /** Efectividad de la vacuna para evitar el ausentismo (0-1). */
@@ -56,9 +66,14 @@ export interface ResultadoEnfermedad {
   poblacionRiesgo: number;
   casosProyectados: number;
   diasInactividad: number;
+  /** Costo de los días perdidos. */
   costoAusentismo: number;
+  /** Costo de atender médicamente los casos. */
+  costoMedico: number;
+  /** Pérdida total del año: ausentismo + atención médica. */
+  costoTotal: number;
   inversionVacunas: number;
-  /** Pérdida evitada gracias a la vacuna (= costoAusentismo * efectividad). */
+  /** Pérdida evitada gracias a la vacuna (= costoTotal * efectividad). */
   perdidaEvitada: number;
   /** Ahorro neto = pérdida evitada - inversión. */
   ahorroNeto: number;
@@ -67,7 +82,12 @@ export interface ResultadoEnfermedad {
 /** Resultado global de la simulación. */
 export interface ResultadoSimulacion {
   detalle: ResultadoEnfermedad[];
+  /** Sólo los días perdidos. */
   costoAusentismoTotal: number;
+  /** Sólo la atención médica de los casos. */
+  costoMedicoTotal: number;
+  /** Pérdida total expuesta: ausentismo + atención médica. */
+  costoTotalExpuesto: number;
   /** Pérdida evitada por la campaña, antes de restar la inversión. */
   perdidaEvitadaTotal: number;
   /** Inversión bruta en vacunas (lo que se factura). */
@@ -100,8 +120,10 @@ export function calcularEnfermedad(
   const casosProyectados = Math.round(poblacionRiesgo * enf.tasaContagio);
   const diasInactividad = casosProyectados * enf.diasAusencia;
   const costoAusentismo = diasInactividad * cd;
+  const costoMedico = casosProyectados * enf.costoMedicoPorCaso;
+  const costoTotal = costoAusentismo + costoMedico;
   const inversionVacunas = poblacionRiesgo * enf.costoDosis;
-  const perdidaEvitada = costoAusentismo * enf.efectividad;
+  const perdidaEvitada = costoTotal * enf.efectividad;
   const ahorroNeto = perdidaEvitada - inversionVacunas;
 
   return {
@@ -110,6 +132,8 @@ export function calcularEnfermedad(
     casosProyectados,
     diasInactividad,
     costoAusentismo,
+    costoMedico,
+    costoTotal,
     inversionVacunas,
     perdidaEvitada,
     ahorroNeto,
@@ -127,6 +151,8 @@ export function calcularSimulacion(
     .map((e) => calcularEnfermedad(empresa, e));
 
   const costoAusentismoTotal = detalle.reduce((s, d) => s + d.costoAusentismo, 0);
+  const costoMedicoTotal = detalle.reduce((s, d) => s + d.costoMedico, 0);
+  const costoTotalExpuesto = costoAusentismoTotal + costoMedicoTotal;
   const perdidaEvitadaTotal = detalle.reduce((s, d) => s + d.perdidaEvitada, 0);
   const inversionTotal = detalle.reduce((s, d) => s + d.inversionVacunas, 0);
 
@@ -144,6 +170,8 @@ export function calcularSimulacion(
   return {
     detalle,
     costoAusentismoTotal,
+    costoMedicoTotal,
+    costoTotalExpuesto,
     perdidaEvitadaTotal,
     inversionTotal,
     ahorroFiscal,

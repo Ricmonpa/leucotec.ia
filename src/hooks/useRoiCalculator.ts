@@ -10,7 +10,10 @@ import {
 const EMPRESA_INICIAL: ParametrosEmpresa = {
   empresa: 'Grupo Bimbo',
   numEmpleados: 400,
-  costoDiaEmpleado: 5600, // equivale a $700/hora en jornada de 8 hrs
+  // Sueldo de ~$21,000/mes con carga social: (21000 / 21.7) * 1.35 ≈ 1300.
+  // El valor anterior (5600) implicaba sueldos de seis cifras y no era
+  // defendible como punto de partida.
+  costoDiaEmpleado: 1300,
   aplicarBeneficioFiscal: true,
   pctDeducible: 0.53, // Art. 28 fr. XXX LISR: 53% si se mantienen prestaciones
   tasaISR: 0.3, // ISR corporativo en México
@@ -29,6 +32,7 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     activa: true,
     tasaContagio: 0.2,
     diasAusencia: 4,
+    costoMedicoPorCaso: 2000,
     costoDosis: 450,
     efectividad: 0.6,
     pctPoblacionRiesgo: 1.0,
@@ -39,26 +43,29 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     activa: true,
     tasaContagio: 0.16,
     diasAusencia: 5,
+    costoMedicoPorCaso: 6000,
     costoDosis: 1200,
     efectividad: 0.8,
     pctPoblacionRiesgo: 1.0,
-    nota: 'Base: Excel de Leucotec. Esquema PCV13 / PPSV23.',
+    nota: 'Esquema PCV13 / PPSV23. Ojo: con una tasa de 16% se asume enfermedad respiratoria en general, mayormente ambulatoria. Si Leucotec se refiere a neumonía confirmada, la tasa debe bajar y el costo médico subir mucho.',
   },
   {
     nombre: 'Herpes Zóster',
     activa: true,
     tasaContagio: 0.06,
     diasAusencia: 21,
+    costoMedicoPorCaso: 22000,
     costoDosis: 4000,
     efectividad: 0.9,
     pctPoblacionRiesgo: 0.2,
-    nota: 'Dirigida a mayores de 50 años (~20% de plantilla). Ausencia muy larga por caso.',
+    nota: 'Dirigida a mayores de 50 años (~20% de plantilla). Su valor está en la neuralgia postherpética, que incapacita meses. Nota: la protección dura años, pero aquí se carga contra un solo ejercicio.',
   },
   {
     nombre: 'COVID-19',
     activa: false,
     tasaContagio: 0.15,
     diasAusencia: 7,
+    costoMedicoPorCaso: 6000,
     costoDosis: 600,
     efectividad: 0.55,
     pctPoblacionRiesgo: 1.0,
@@ -69,6 +76,7 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     activa: false,
     tasaContagio: 0.02,
     diasAusencia: 20,
+    costoMedicoPorCaso: 30000,
     costoDosis: 900,
     efectividad: 0.95,
     pctPoblacionRiesgo: 1.0,
@@ -79,6 +87,7 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     activa: false,
     tasaContagio: 0.02,
     diasAusencia: 10,
+    costoMedicoPorCaso: 45000,
     costoDosis: 1100,
     efectividad: 0.99,
     pctPoblacionRiesgo: 0.03,
@@ -89,6 +98,7 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     activa: false,
     tasaContagio: 0,
     diasAusencia: 0,
+    costoMedicoPorCaso: 0,
     costoDosis: 2400,
     efectividad: 0.9,
     pctPoblacionRiesgo: 0.15,

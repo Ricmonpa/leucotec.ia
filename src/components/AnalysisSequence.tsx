@@ -33,7 +33,7 @@ export function AnalysisSequence({
     `Leyendo plantilla de ${formatNumber(empresa.numEmpleados)} empleados`,
     `Estimando población en riesgo para ${activas.length} vacunas`,
     'Proyectando casos esperados por enfermedad',
-    'Valuando días de inactividad operativa',
+    'Valuando días de inactividad y atención médica',
     empresa.aplicarBeneficioFiscal
       ? 'Aplicando deducción por previsión social'
       : 'Contrastando inversión contra pérdida evitada',

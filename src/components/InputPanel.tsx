@@ -1,4 +1,5 @@
 import { Building2, Landmark, Settings2, Syringe } from 'lucide-react';
+import { CalculadoraCostoDia } from './CalculadoraCostoDia';
 import { Field } from './ui/Field';
 import type { UseRoiCalculator } from '../hooks/useRoiCalculator';
 
@@ -38,14 +39,23 @@ export function InputPanel({
           />
           <Field
             type="number"
-            label="Costo Día Prom."
+            label="Costo Día de Ausencia"
             prefix="$"
             value={empresa.costoDiaEmpleado}
             min={0}
-            hint="Costo de un día de ausencia por empleado"
             onChange={(v) => setEmpresaCampo('costoDiaEmpleado', v)}
           />
         </div>
+
+        <p className="-mt-2 text-[11px] leading-snug text-slate-400">
+          Lo que le cuesta a la empresa que esa persona no esté —{' '}
+          <strong className="text-slate-500">no es el sueldo diario</strong>.
+          Incluye carga social y el costo de cubrir el hueco.
+        </p>
+
+        <CalculadoraCostoDia
+          onAplicar={(v) => setEmpresaCampo('costoDiaEmpleado', v)}
+        />
       </div>
 
       <div className="my-6 border-t border-slate-100" />
@@ -213,6 +223,16 @@ export function InputPanel({
                 value={enf.costoDosis}
                 min={0}
                 onChange={(v) => setEnfermedadCampo(i, 'costoDosis', v)}
+              />
+              <Field
+                className="col-span-2"
+                type="number"
+                label="Costo Médico por Caso"
+                prefix="$"
+                value={enf.costoMedicoPorCaso}
+                min={0}
+                hint="Consultas, estudios y hospitalización promedio"
+                onChange={(v) => setEnfermedadCampo(i, 'costoMedicoPorCaso', v)}
               />
               <Field
                 type="number"

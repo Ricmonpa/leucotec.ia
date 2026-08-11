@@ -25,7 +25,7 @@ const formatAxis = (value: number) => {
 export function RiskChart({ resultado }: RiskChartProps) {
   const data = resultado.detalle.map((d) => ({
     name: d.nombre,
-    'Pérdida por Ausentismo': d.costoAusentismo,
+    'Pérdida Expuesta': d.costoTotal,
     'Inversión Preventiva': d.inversionVacunas,
     'Ahorro Neto': d.ahorroNeto,
   }));
@@ -63,7 +63,7 @@ export function RiskChart({ resultado }: RiskChartProps) {
             />
             <Legend iconType="circle" wrapperStyle={{ paddingTop: '16px' }} />
             <Bar
-              dataKey="Pérdida por Ausentismo"
+              dataKey="Pérdida Expuesta"
               fill="#DC052B"
               radius={[6, 6, 0, 0]}
               maxBarSize={48}
@@ -74,7 +74,13 @@ export function RiskChart({ resultado }: RiskChartProps) {
               radius={[6, 6, 0, 0]}
               maxBarSize={48}
             />
-            <Bar dataKey="Ahorro Neto" radius={[6, 6, 0, 0]} maxBarSize={48}>
+            {/* fill da color a la leyenda; cada Cell lo sobreescribe según signo */}
+            <Bar
+              dataKey="Ahorro Neto"
+              fill="#10B981"
+              radius={[6, 6, 0, 0]}
+              maxBarSize={48}
+            >
               {data.map((d, i) => (
                 <Cell
                   key={i}
