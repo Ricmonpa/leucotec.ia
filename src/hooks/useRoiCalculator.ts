@@ -10,8 +10,7 @@ import {
 const EMPRESA_INICIAL: ParametrosEmpresa = {
   empresa: 'Grupo Bimbo',
   numEmpleados: 400,
-  costoHora: 700,
-  horasJornada: 8,
+  costoDiaEmpleado: 5600, // equivale a $700/hora en jornada de 8 hrs
   aplicarBeneficioFiscal: true,
   pctDeducible: 0.53, // Art. 28 fr. XXX LISR: 53% si se mantienen prestaciones
   tasaISR: 0.3, // ISR corporativo en México

@@ -38,23 +38,14 @@ export function InputPanel({
           />
           <Field
             type="number"
-            label="Costo Hora Prom."
+            label="Costo Día Prom."
             prefix="$"
-            value={empresa.costoHora}
+            value={empresa.costoDiaEmpleado}
             min={0}
-            onChange={(v) => setEmpresaCampo('costoHora', v)}
+            hint="Costo de un día de ausencia por empleado"
+            onChange={(v) => setEmpresaCampo('costoDiaEmpleado', v)}
           />
         </div>
-
-        <Field
-          type="number"
-          label="Horas por Jornada"
-          value={empresa.horasJornada}
-          min={1}
-          max={24}
-          suffix="hrs"
-          onChange={(v) => setEmpresaCampo('horasJornada', v)}
-        />
       </div>
 
       <div className="my-6 border-t border-slate-100" />

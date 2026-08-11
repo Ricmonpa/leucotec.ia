@@ -16,8 +16,8 @@
 export interface ParametrosEmpresa {
   empresa: string;
   numEmpleados: number;
-  costoHora: number;
-  horasJornada: number;
+  /** Costo de un día completo de un empleado (sueldo + carga social). */
+  costoDiaEmpleado: number;
   /** Si se incluye el beneficio fiscal en la propuesta. */
   aplicarBeneficioFiscal: boolean;
   /**
@@ -87,7 +87,7 @@ export interface ResultadoSimulacion {
 
 /** Costo de un día completo de inactividad de un empleado. */
 export function costoDia(empresa: ParametrosEmpresa): number {
-  return empresa.costoHora * empresa.horasJornada;
+  return empresa.costoDiaEmpleado;
 }
 
 /** Calcula el resultado para una sola enfermedad. */
