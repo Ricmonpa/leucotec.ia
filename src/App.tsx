@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { AnalysisSequence } from './components/AnalysisSequence';
 import { Header } from './components/Header';
 import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
@@ -41,6 +42,21 @@ function Simulator() {
     reset,
   } = useRoiCalculator();
 
+  // Sólo en el arranque (o al pedirlo). Las ediciones en vivo no pasan por
+  // aquí: la respuesta inmediata frente al CFO es lo que vende la herramienta.
+  const [analizando, setAnalizando] = useState(true);
+  const terminarAnalisis = useCallback(() => setAnalizando(false), []);
+
+  if (analizando) {
+    return (
+      <AnalysisSequence
+        empresa={empresa}
+        enfermedades={enfermedades}
+        onListo={terminarAnalisis}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-slate-50 p-4 font-sans text-slate-800 md:p-8">
       <div className="mx-auto max-w-7xl">
@@ -48,6 +64,7 @@ function Simulator() {
           empresa={empresa.empresa}
           onExport={() => window.print()}
           onReset={reset}
+          onReanalizar={() => setAnalizando(true)}
         />
 
         <main className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">

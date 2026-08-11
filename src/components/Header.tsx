@@ -1,12 +1,18 @@
-import { FileDown, RotateCcw } from 'lucide-react';
+import { FileDown, RotateCcw, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   empresa: string;
   onExport: () => void;
   onReset: () => void;
+  onReanalizar: () => void;
 }
 
-export function Header({ empresa, onExport, onReset }: HeaderProps) {
+export function Header({
+  empresa,
+  onExport,
+  onReset,
+  onReanalizar,
+}: HeaderProps) {
   return (
     <header className="mb-6 flex flex-col gap-4 border-b-2 border-slate-200 pb-4 md:mb-8 md:flex-row md:items-center md:justify-between md:pb-5">
       <div className="flex items-center gap-3">
@@ -39,6 +45,13 @@ export function Header({ empresa, onExport, onReset }: HeaderProps) {
           <span className="mr-2 shrink-0 text-sm text-slate-500">Prospecto:</span>
           <span className="truncate font-bold text-brand-dark">{empresa}</span>
         </div>
+        <button
+          onClick={onReanalizar}
+          title="Ejecutar el análisis de nuevo"
+          className="no-print flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-brand-primary"
+        >
+          <Sparkles className="h-4 w-4" />
+        </button>
         <button
           onClick={onReset}
           title="Restablecer valores"

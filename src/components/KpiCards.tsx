@@ -1,12 +1,22 @@
 import { TrendingDown, Wallet, TrendingUp, Landmark } from 'lucide-react';
 import { formatCurrency, type ResultadoSimulacion } from '../lib/calculations';
+import { useCountUp } from '../hooks/useCountUp';
 
 interface KpiCardsProps {
   resultado: ResultadoSimulacion;
 }
 
 export function KpiCards({ resultado }: KpiCardsProps) {
-  const roi = resultado.roiGlobal.toFixed(1);
+  // Los números corren hasta su valor final: el cálculo ya está hecho, sólo
+  // se revela con movimiento para que se lea como un motor trabajando.
+  const perdida = useCountUp(resultado.costoAusentismoTotal);
+  const inversion = useCountUp(resultado.inversionTotal);
+  const fiscal = useCountUp(resultado.ahorroFiscal);
+  const neta = useCountUp(resultado.inversionNeta);
+  const ahorro = useCountUp(resultado.ahorroNetoTotal);
+  const roiAnimado = useCountUp(resultado.roiGlobal);
+
+  const roi = roiAnimado.toFixed(1);
   const roiPositivo = resultado.roiGlobal >= 0;
   const conFiscal = resultado.ahorroFiscal > 0;
 
@@ -24,7 +34,7 @@ export function KpiCards({ resultado }: KpiCardsProps) {
           <p className="mb-2 text-xs text-slate-400">Por ausentismo no mitigado</p>
         </div>
         <p className="text-3xl font-bold text-slate-800">
-          {formatCurrency(resultado.costoAusentismoTotal)}
+          {formatCurrency(perdida)}
         </p>
       </div>
 
@@ -43,22 +53,22 @@ export function KpiCards({ resultado }: KpiCardsProps) {
         {conFiscal ? (
           <div>
             <p className="text-2xl font-bold text-slate-400 line-through decoration-1">
-              {formatCurrency(resultado.inversionTotal)}
+              {formatCurrency(inversion)}
             </p>
             <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-emerald-600">
               <Landmark className="h-3.5 w-3.5" />
-              Recupera {formatCurrency(resultado.ahorroFiscal)} de ISR
+              Recupera {formatCurrency(fiscal)} de ISR
             </p>
             <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-400">
               Costo real
             </p>
             <p className="text-3xl font-bold text-brand-secondary">
-              {formatCurrency(resultado.inversionNeta)}
+              {formatCurrency(neta)}
             </p>
           </div>
         ) : (
           <p className="text-3xl font-bold text-brand-secondary">
-            {formatCurrency(resultado.inversionTotal)}
+            {formatCurrency(inversion)}
           </p>
         )}
       </div>
@@ -73,7 +83,7 @@ export function KpiCards({ resultado }: KpiCardsProps) {
           <p className="mb-2 text-xs text-white/70">Impacto directo a utilidades</p>
         </div>
         <p className="text-4xl font-black drop-shadow-md">
-          {formatCurrency(resultado.ahorroNetoTotal)}
+          {formatCurrency(ahorro)}
         </p>
         <div
           className={`mt-4 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold text-white shadow-inner ${
