@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface FieldBaseProps {
   label: string;
   /** Texto de ayuda opcional bajo el campo. */
@@ -33,6 +35,12 @@ const inputBase =
 export function Field(props: FieldProps) {
   const { label, hint, className } = props;
 
+  // Mientras el usuario escribe se conserva el texto crudo, para que pueda
+  // borrar el campo y teclear otro número sin que el input se le resista.
+  // Hacia el cálculo nunca sale NaN: un campo vacío vale 0. Sin esto, borrar
+  // el contenido dejaba todos los KPIs en "$NaN".
+  const [textoCrudo, setTextoCrudo] = useState<string | null>(null);
+
   return (
     <div className={className}>
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -55,11 +63,22 @@ export function Field(props: FieldProps) {
           )}
           <input
             type="number"
-            value={Number.isFinite(props.value) ? props.value : ''}
+            value={
+              textoCrudo !== null
+                ? textoCrudo
+                : Number.isFinite(props.value)
+                  ? props.value
+                  : ''
+            }
             step={props.step}
             min={props.min}
             max={props.max}
-            onChange={(e) => props.onChange(e.target.valueAsNumber)}
+            onChange={(e) => {
+              setTextoCrudo(e.target.value);
+              const v = e.target.valueAsNumber;
+              props.onChange(Number.isFinite(v) ? v : 0);
+            }}
+            onBlur={() => setTextoCrudo(null)}
             className={`${inputBase} ${props.prefix ? 'pl-7' : ''} ${
               props.suffix ? 'pr-9' : ''
             }`}
