@@ -225,7 +225,17 @@ export function InputPanel({
                 onChange={(v) => setEnfermedadCampo(i, 'costoDosis', v)}
               />
               <Field
-                className="col-span-2"
+                type="number"
+                label="Años de Protección"
+                suffix="años"
+                step={1}
+                min={1}
+                max={30}
+                hint="La inversión se amortiza a este plazo"
+                value={enf.aniosProteccion}
+                onChange={(v) => setEnfermedadCampo(i, 'aniosProteccion', v)}
+              />
+              <Field
                 type="number"
                 label="Costo Médico por Caso"
                 prefix="$"

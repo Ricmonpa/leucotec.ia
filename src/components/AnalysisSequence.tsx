@@ -34,6 +34,7 @@ export function AnalysisSequence({
     `Estimando población en riesgo para ${activas.length} vacunas`,
     'Proyectando casos esperados por enfermedad',
     'Valuando días de inactividad y atención médica',
+    'Amortizando la protección multianual de cada vacuna',
     empresa.aplicarBeneficioFiscal
       ? 'Aplicando deducción por previsión social'
       : 'Contrastando inversión contra pérdida evitada',

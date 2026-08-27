@@ -15,6 +15,7 @@ export function KpiCards({ resultado }: KpiCardsProps) {
   const inversion = useCountUp(resultado.inversionTotal);
   const fiscal = useCountUp(resultado.ahorroFiscal);
   const neta = useCountUp(resultado.inversionNeta);
+  const anualizada = useCountUp(resultado.inversionAnualizadaTotal);
   const ahorro = useCountUp(resultado.ahorroNetoTotal);
   const roiAnimado = useCountUp(resultado.roiGlobal);
 
@@ -73,6 +74,10 @@ export function KpiCards({ resultado }: KpiCardsProps) {
             <p className="text-3xl font-bold text-brand-secondary">
               {formatCurrency(neta)}
             </p>
+            <p className="mt-1 text-[11px] leading-snug text-slate-400">
+              ≈ {formatCurrency(anualizada)}/año amortizando la protección
+              multianual
+            </p>
           </div>
         ) : (
           <p className="text-3xl font-bold text-brand-secondary">
@@ -88,7 +93,7 @@ export function KpiCards({ resultado }: KpiCardsProps) {
           <p className="text-sm font-semibold uppercase tracking-wide text-white/80">
             Ahorro Operativo Neto
           </p>
-          <p className="mb-2 text-xs text-white/70">Impacto directo a utilidades</p>
+          <p className="mb-2 text-xs text-white/70">Impacto anual a utilidades</p>
         </div>
         <p className="text-4xl font-black drop-shadow-md">
           {formatCurrency(ahorro)}

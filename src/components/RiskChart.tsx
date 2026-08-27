@@ -26,7 +26,7 @@ export function RiskChart({ resultado }: RiskChartProps) {
   const data = resultado.detalle.map((d) => ({
     name: d.nombre,
     'Pérdida Expuesta': d.costoTotal,
-    'Inversión Preventiva': d.inversionVacunas,
+    'Inversión Anualizada': d.inversionAnualizada,
     'Ahorro Neto': d.ahorroNeto,
   }));
 
@@ -69,7 +69,7 @@ export function RiskChart({ resultado }: RiskChartProps) {
               maxBarSize={48}
             />
             <Bar
-              dataKey="Inversión Preventiva"
+              dataKey="Inversión Anualizada"
               fill="#73797D"
               radius={[6, 6, 0, 0]}
               maxBarSize={48}

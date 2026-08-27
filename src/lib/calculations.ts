@@ -9,8 +9,14 @@
 //        b) atención médica = consultas, estudios, hospitalización
 //      Contar sólo (a) subvalúa sistemáticamente las vacunas caras contra
 //      eventos graves: su beneficio no está en los días, está en la factura.
-//   4. La inversión = población en riesgo * costo de la dosis.
-//   5. El ahorro neto = pérdida evitada (según efectividad) - inversión.
+//   4. La inversión = población en riesgo * costo de la dosis. Como varias
+//      vacunas protegen varios años (Zóster ~10, Neumococo ~5), la inversión
+//      se AMORTIZA: se compara el beneficio de un año contra el costo
+//      anualizado de la protección. Es la práctica estándar de economía de
+//      la salud (costo por año protegido); cargar todo a un ejercicio
+//      castiga injustamente a las vacunas de larga duración.
+//   5. El ahorro neto = pérdida evitada (según efectividad) - inversión
+//      anualizada neta de efecto fiscal.
 //
 // Todos los supuestos (efectividad, % población en riesgo) son parámetros
 // editables, no constantes ocultas: el vendedor debe poder justificarlos.
@@ -54,6 +60,11 @@ export interface ParametrosEnfermedad {
   costoMedicoPorCaso: number;
   /** Costo de la dosis (campaña completa) por empleado vacunado. */
   costoDosis: number;
+  /**
+   * Años que dura la protección de la vacuna. La inversión se amortiza a
+   * este plazo para comparar beneficio anual contra costo anual.
+   */
+  aniosProteccion: number;
   /** Efectividad de la vacuna para evitar el ausentismo (0-1). */
   efectividad: number;
   /** Fracción de la plantilla que es población objetivo/en riesgo (0-1). */
@@ -72,10 +83,16 @@ export interface ResultadoEnfermedad {
   costoMedico: number;
   /** Pérdida total del año: ausentismo + atención médica. */
   costoTotal: number;
+  /** Lo que se factura hoy por la campaña de esta vacuna. */
   inversionVacunas: number;
+  /**
+   * Costo anual de la protección: inversión neta de efecto fiscal dividida
+   * entre los años que protege.
+   */
+  inversionAnualizada: number;
   /** Pérdida evitada gracias a la vacuna (= costoTotal * efectividad). */
   perdidaEvitada: number;
-  /** Ahorro neto = pérdida evitada - inversión. */
+  /** Ahorro neto anual = pérdida evitada - inversión anualizada. */
   ahorroNeto: number;
 }
 
@@ -99,9 +116,11 @@ export interface ResultadoSimulacion {
   ahorroFiscal: number;
   /** Costo real de la campaña después del efecto fiscal. */
   inversionNeta: number;
-  /** Ahorro neto = pérdida evitada - inversión neta. */
+  /** Costo anual de mantener protegida a la plantilla. */
+  inversionAnualizadaTotal: number;
+  /** Ahorro neto anual = pérdida evitada - inversión anualizada. */
   ahorroNetoTotal: number;
-  /** ROI global en porcentaje: ahorro neto / inversión neta * 100. */
+  /** ROI anual en porcentaje: ahorro neto / inversión anualizada * 100. */
   roiGlobal: number;
 }
 
@@ -123,8 +142,17 @@ export function calcularEnfermedad(
   const costoMedico = casosProyectados * enf.costoMedicoPorCaso;
   const costoTotal = costoAusentismo + costoMedico;
   const inversionVacunas = poblacionRiesgo * enf.costoDosis;
+
+  // La deducción fiscal reduce el costo real del gasto en el año de compra;
+  // ese costo neto se reparte entre los años que la vacuna protege.
+  const factorFiscal = empresa.aplicarBeneficioFiscal
+    ? 1 - empresa.pctDeducible * empresa.tasaISR
+    : 1;
+  const anios = Math.max(1, enf.aniosProteccion || 1);
+  const inversionAnualizada = (inversionVacunas * factorFiscal) / anios;
+
   const perdidaEvitada = costoTotal * enf.efectividad;
-  const ahorroNeto = perdidaEvitada - inversionVacunas;
+  const ahorroNeto = perdidaEvitada - inversionAnualizada;
 
   return {
     nombre: enf.nombre,
@@ -135,6 +163,7 @@ export function calcularEnfermedad(
     costoMedico,
     costoTotal,
     inversionVacunas,
+    inversionAnualizada,
     perdidaEvitada,
     ahorroNeto,
   };
@@ -163,9 +192,18 @@ export function calcularSimulacion(
     : 0;
 
   const inversionNeta = inversionTotal - ahorroFiscal;
-  const ahorroNetoTotal = perdidaEvitadaTotal - inversionNeta;
+
+  // Beneficio anual contra costo anual: la comparación justa cuando la
+  // protección de varias vacunas dura más de un ejercicio.
+  const inversionAnualizadaTotal = detalle.reduce(
+    (s, d) => s + d.inversionAnualizada,
+    0,
+  );
+  const ahorroNetoTotal = perdidaEvitadaTotal - inversionAnualizadaTotal;
   const roiGlobal =
-    inversionNeta > 0 ? (ahorroNetoTotal / inversionNeta) * 100 : 0;
+    inversionAnualizadaTotal > 0
+      ? (ahorroNetoTotal / inversionAnualizadaTotal) * 100
+      : 0;
 
   return {
     detalle,
@@ -176,6 +214,7 @@ export function calcularSimulacion(
     inversionTotal,
     ahorroFiscal,
     inversionNeta,
+    inversionAnualizadaTotal,
     ahorroNetoTotal,
     roiGlobal,
   };
