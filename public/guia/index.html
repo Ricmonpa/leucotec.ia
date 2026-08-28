@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<title>Guía del Simulador ROI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ink:#26292C; --body:#5A6065; --faint:#8B9196; --line:#E6E8EA;
+  --ground:#FAFAFB; --card:#FFFFFF; --card2:#F4F5F6;
+  --red:#DC052B; --red-dark:#9E0420; --red-soft:#FDECEF;
+  --green:#0E9F6E; --green-soft:#E6F6F0;
+  --amber:#D97706; --amber-soft:#FBF1E2;
+  --gray-kpi:#73797D;
+  --shadow:0 1px 3px rgb(20 22 24 / .07), 0 8px 24px -12px rgb(20 22 24 / .12);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#ECEEF0; --body:#B3B9BE; --faint:#7E858B; --line:#33383C;
+    --ground:#141618; --card:#1E2124; --card2:#26292D;
+    --red:#F5455C; --red-dark:#DC052B; --red-soft:#3A1A20;
+    --green:#34C38F; --green-soft:#16302A;
+    --amber:#E8963B; --amber-soft:#332715;
+    --gray-kpi:#9AA0A5;
+    --shadow:0 1px 3px rgb(0 0 0 / .4), 0 8px 24px -12px rgb(0 0 0 / .5);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#ECEEF0; --body:#B3B9BE; --faint:#7E858B; --line:#33383C;
+  --ground:#141618; --card:#1E2124; --card2:#26292D;
+  --red:#F5455C; --red-dark:#DC052B; --red-soft:#3A1A20;
+  --green:#34C38F; --green-soft:#16302A;
+  --amber:#E8963B; --amber-soft:#332715;
+  --gray-kpi:#9AA0A5;
+  --shadow:0 1px 3px rgb(0 0 0 / .4), 0 8px 24px -12px rgb(0 0 0 / .5);
+}
+*{box-sizing:border-box;margin:0}
+body{
+  background:var(--ground); color:var(--body);
+  font:400 16px/1.65 Inter, ui-sans-serif, system-ui, sans-serif;
+  padding:0 20px 72px;
+}
+.wrap{max-width:680px;margin:0 auto}
+h1,h2,h3{font-family:Archivo, Inter, sans-serif; color:var(--ink); text-wrap:balance; line-height:1.15}
+h1{font-size:clamp(30px,6vw,40px); font-weight:800; letter-spacing:-.01em}
+h2{font-size:22px; font-weight:700; margin:0 0 6px}
+h3{font-size:16px; font-weight:700}
+strong{color:var(--ink); font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+header{padding:56px 0 8px}
+.eyebrow{
+  display:inline-block; font-size:12px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--red); margin-bottom:14px;
+}
+.lede{margin-top:14px; font-size:17px; max-width:56ch}
+
+section{margin-top:56px}
+.sec-kicker{font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-bottom:6px}
+.sec-sub{margin:4px 0 22px; max-width:58ch}
+
+.kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:22px 0 18px}
+@media (max-width:560px){.kpis{grid-template-columns:1fr}}
+.kpi{
+  background:var(--card); border-radius:14px; padding:16px 16px 14px;
+  box-shadow:var(--shadow); border-left:4px solid var(--gray-kpi);
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+}
+.kpi.loss{border-left-color:var(--red)}
+.kpi.win{border-left:none; background:linear-gradient(135deg, var(--red), var(--red-dark)); color:#fff}
+.kpi .k-label{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+.kpi.win .k-label{color:rgb(255 255 255 / .8)}
+.kpi .k-value{font-family:Archivo, Inter, sans-serif; font-size:22px; font-weight:800; color:var(--ink); margin-top:2px}
+.kpi.win .k-value{color:#fff}
+.kpi .k-note{font-size:12px; line-height:1.45; margin-top:6px}
+.kpi.win .k-note{color:rgb(255 255 255 / .85)}
+.kpi.win .k-note strong{color:#fff}
+.story p{max-width:60ch; margin-top:8px}
+
+.rules{display:grid; gap:14px}
+.rule{
+  background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+  padding:18px 20px; border-top:3px solid var(--line);
+}
+.rule.g{border-top-color:var(--green)}
+.rule.y{border-top-color:var(--amber)}
+.rule.r{border-top-color:var(--red)}
+.chip{
+  display:inline-block; font-size:11px; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; padding:4px 10px; border-radius:999px; margin-bottom:10px;
+}
+.rule.g .chip{background:var(--green-soft); color:var(--green)}
+.rule.y .chip{background:var(--amber-soft); color:var(--amber)}
+.rule.r .chip{background:var(--red-soft); color:var(--red)}
+.fields{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 12px}
+.field{
+  font-size:13px; font-weight:500; color:var(--ink);
+  background:var(--card2); border:1px solid var(--line);
+  padding:5px 12px; border-radius:8px;
+}
+.rule p{font-size:14px; max-width:60ch}
+
+.anatomy{display:grid; grid-template-columns:240px 1fr; gap:20px; align-items:start}
+@media (max-width:600px){.anatomy{grid-template-columns:1fr}}
+.inv-card{
+  background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+  border-left:4px solid var(--gray-kpi); padding:18px;
+}
+.inv-card .k-label{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+.row-tag{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:20px; height:20px; border-radius:50%; flex:none;
+  background:var(--red); color:#fff; font-size:11px; font-weight:700;
+  font-family:Archivo, Inter, sans-serif;
+}
+.inv-line{display:flex; align-items:center; gap:10px; margin-top:10px}
+.inv-strike{font-size:18px; font-weight:700; color:var(--faint); text-decoration:line-through}
+.inv-isr{font-size:12px; font-weight:600; color:var(--green)}
+.inv-real-label{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+.inv-real{font-family:Archivo, Inter, sans-serif; font-size:22px; font-weight:800; color:var(--gray-kpi)}
+.inv-year{font-size:12px; color:var(--faint)}
+.legend{display:grid; gap:14px}
+.legend-item{display:flex; gap:12px; align-items:flex-start}
+.legend-item p{font-size:14px; margin-top:-2px; max-width:52ch}
+.legend-item .row-tag{margin-top:3px}
+
+.script{display:grid; gap:12px; counter-reset:frase}
+.frase{
+  background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+  padding:18px 20px 18px 58px; position:relative;
+}
+.frase::before{
+  counter-increment:frase; content:counter(frase);
+  position:absolute; left:20px; top:19px;
+  width:24px; height:24px; border-radius:50%;
+  background:var(--red); color:#fff;
+  font:700 13px/24px Archivo, Inter, sans-serif; text-align:center;
+}
+.frase q{color:var(--ink); font-weight:500; font-style:italic}
+.frase small{display:block; margin-top:6px; font-size:12.5px; color:var(--faint)}
+
+.qa{display:grid; gap:12px}
+details{
+  background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+  overflow:hidden;
+}
+summary{
+  cursor:pointer; list-style:none; padding:16px 20px;
+  font-weight:600; color:var(--ink); font-size:15px;
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+"; font-family:Archivo, sans-serif; font-weight:700; color:var(--red); font-size:18px; flex:none}
+details[open] summary::after{content:"−"}
+details .a{padding:0 20px 18px; font-size:14.5px; max-width:62ch}
+summary:focus-visible{outline:2px solid var(--red); outline-offset:-2px; border-radius:14px}
+
+.golden{
+  margin-top:56px; background:linear-gradient(135deg, var(--red), var(--red-dark));
+  color:#fff; border-radius:16px; padding:28px 26px; box-shadow:var(--shadow);
+}
+.golden h2{color:#fff; margin-bottom:8px}
+.golden p{color:rgb(255 255 255 / .92); max-width:58ch; font-size:15.5px}
+.golden p strong{color:#fff}
+
+footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+  font-size:12.5px; color:var(--faint); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="eyebrow">Grupo Leucotec · Analítica Corporativa</span>
+  <h1>Guía del Simulador ROI</h1>
+  <p class="lede">El simulador cuenta <strong>una sola historia con tres números</strong>: lo que el cliente ya pierde por enfermedad, lo que cuesta protegerse y lo que se queda en su bolsillo. Esta guía te dice qué significa cada dato, cuál se toca y cuál no.</p>
+</header>
+
+<section>
+  <p class="sec-kicker">La pantalla principal</p>
+  <h2>Tres números, una historia</h2>
+  <p class="sec-sub">Léelos siempre en este orden, de izquierda a derecha. Los montos de ejemplo son del demo (400 empleados).</p>
+
+  <div class="kpis">
+    <div class="kpi loss">
+      <span class="k-label">Pérdida proyectada</span>
+      <span class="k-value num">$1,622,500</span>
+      <span class="k-note">Lo que <strong>hoy ya les cuesta</strong> que su gente se enferme: días perdidos + gastos médicos. Esta pérdida ya la pagan, aunque no la vean.</span>
+    </div>
+    <div class="kpi">
+      <span class="k-label">Inversión Leucotec</span>
+      <span class="k-value num">$259,028<span style="font-size:13px">/año</span></span>
+      <span class="k-note">Lo que cuesta protegerse. Fíjate en el <strong>último renglón</strong> de la tarjeta: el costo anual (abajo te explico los 4 renglones).</span>
+    </div>
+    <div class="kpi win">
+      <span class="k-label">Ahorro operativo neto</span>
+      <span class="k-value num">$948,422</span>
+      <span class="k-note">Lo que dejan de perder, menos lo que pagan. <strong>Va directo a utilidades</strong>: un costo evitado no trae costos asociados.</span>
+    </div>
+  </div>
+
+  <div class="story">
+    <p>Por eso el ahorro se presenta como <strong>impacto anual a utilidades</strong>: para generar ese mismo dinero vendiendo más, el cliente tendría que vender varias veces esa cifra, porque a las ventas se les restan costos. El peso ahorrado llega completo a la última línea.</p>
+  </div>
+</section>
+
+<section>
+  <p class="sec-kicker">Antes de cada cotización</p>
+  <h2>Qué campo se toca y cuál no</h2>
+  <p class="sec-sub">Piensa en semáforo. Si dudas, no lo muevas: los valores precargados ya están sustentados.</p>
+
+  <div class="rules">
+    <div class="rule g">
+      <span class="chip">Siempre se ajustan</span>
+      <div class="fields">
+        <span class="field">Nombre empresa</span>
+        <span class="field">Total empleados</span>
+        <span class="field">Costo dosis</span>
+        <span class="field">% plantilla a vacunar</span>
+        <span class="field">Vacunas activas</span>
+      </div>
+      <p>Son los datos de <strong>esta</strong> cotización. El costo dosis es su precio real por persona (esquema completo). Solo las vacunas encendidas suman al cálculo.</p>
+    </div>
+
+    <div class="rule y">
+      <span class="chip">Solo si el cliente da su dato</span>
+      <div class="fields">
+        <span class="field">Costo día de ausencia</span>
+      </div>
+      <p>Arranca en <strong class="num">$1,300</strong> (sueldo de ~$21 mil con carga social). Si finanzas te dice <em>«a mí me cuesta $500»</em>, pónselo enfrente: ese momento es oro, porque el resultado queda con <strong>su</strong> número. Si solo te dan sueldo mensual, usa la calculadora que está justo debajo del campo.</p>
+    </div>
+
+    <div class="rule r">
+      <span class="chip">Mejor no moverlos</span>
+      <div class="fields">
+        <span class="field">Tasa de contagio</span>
+        <span class="field">Días de ausencia</span>
+        <span class="field">Efectividad</span>
+        <span class="field">Años de protección</span>
+        <span class="field">Costo médico por caso</span>
+        <span class="field">% deducible · Tasa ISR</span>
+      </div>
+      <p>Ya vienen sustentados con la información técnica y la ley vigente (Art. 7 y 93 LISR). Solo cambiarían con nueva evidencia o si cambia la ley.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="sec-kicker">La tarjeta que más preguntan</p>
+  <h2>Cómo leer la Inversión</h2>
+  <p class="sec-sub">Cuatro renglones, de arriba hacia abajo:</p>
+
+  <div class="anatomy">
+    <div class="inv-card" aria-hidden="true">
+      <span class="k-label">Inversión Leucotec</span>
+      <div class="inv-line"><span class="row-tag">1</span><span class="inv-strike num">$980,000</span></div>
+      <div class="inv-line"><span class="row-tag">2</span><span class="inv-isr num">Recupera $155,820 de ISR</span></div>
+      <div class="inv-line"><span class="row-tag">3</span><span><span class="inv-real-label">Costo real</span><br><span class="inv-real num">$824,180</span></span></div>
+      <div class="inv-line"><span class="row-tag">4</span><span class="inv-year num">≈ $259,028/año amortizando la protección</span></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="row-tag">1</span><p><strong>Lo que se factura hoy</strong> por la campaña completa.</p></div>
+      <div class="legend-item"><span class="row-tag">2</span><p><strong>Lo que se deducen de impuestos</strong> como previsión social. La vacunación al personal es gasto deducible.</p></div>
+      <div class="legend-item"><span class="row-tag">3</span><p><strong>Factura menos deducción:</strong> lo que de verdad les cuesta la campaña.</p></div>
+      <div class="legend-item"><span class="row-tag">4</span><p><strong>Ese costo repartido entre los años que protege cada vacuna.</strong> Influenza se compra cada año, pero Zóster protege ~10 años y Neumococo ~5: no sería justo cargarlo todo a un solo año. <strong>Contra este renglón se compara el ahorro.</strong></p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="sec-kicker">Frente al cliente</p>
+  <h2>El guion de tres frases</h2>
+  <p class="sec-sub">La venta completa cabe en esto:</p>
+
+  <div class="script">
+    <div class="frase"><q>Hoy ustedes ya están perdiendo $1.6 millones al año por enfermedades prevenibles — solo que ese costo está escondido entre incapacidades y gastos médicos.</q><small>Señala la tarjeta roja.</small></div>
+    <div class="frase"><q>Protegerse les cuesta $259 mil al año — pagan una vez y quedan protegidos varios años.</q><small>Señala el último renglón de Inversión.</small></div>
+    <div class="frase"><q>La diferencia, $948 mil, se queda en su bolsillo. Es una ganancia que hoy están regalando.</q><small>Cierra con la tarjeta grande.</small></div>
+  </div>
+</section>
+
+<section>
+  <p class="sec-kicker">Cuando cuestionen un número</p>
+  <h2>Respuestas listas</h2>
+  <p class="sec-sub">Toca cada pregunta para ver cómo responder.</p>
+
+  <div class="qa">
+    <details>
+      <summary>«Tu costo por día está muy alto / muy bajo»</summary>
+      <div class="a"><p>Perfecto: <strong>«¿cuánto es el suyo?»</strong> — y lo escribes enfrente. El simulador se recalcula al instante y el resultado queda con el dato del cliente, que es imposible de rebatir. Nunca defiendas el número precargado: cámbialo.</p></div>
+    </details>
+    <details>
+      <summary>«¿De dónde sale la deducción de impuestos?»</summary>
+      <div class="a"><p>La vacunación al personal es <strong>gasto deducible como previsión social</strong> (Art. 7 y 93 de la LISR). El gasto reduce la base gravable, no el impuesto directo: por eso el simulador recupera solo la parte proporcional, no el gasto completo. Requiere aplicarse a toda la plantilla con los mismos criterios y pagarse por medios rastreables.</p></div>
+    </details>
+    <details>
+      <summary>«¿Por qué la inversión se divide entre años?»</summary>
+      <div class="a"><p>Porque varias vacunas <strong>protegen más de un año</strong>: Zóster ~10, Neumococo ~5. Comparar el beneficio de un año contra el costo de una década sería injusto. Es la práctica estándar en economía de la salud: costo por año protegido. Y si el cliente desconfía, ponle 1 año al campo y muéstrale que el resultado sigue conviniendo.</p></div>
+    </details>
+    <details>
+      <summary>«¿Y si el resultado sale negativo?»</summary>
+      <div class="a"><p>Díselo tal cual: <strong>el simulador no maquilla</strong>. Un resultado negativo significa que, con esos datos, esa vacuna no se justifica por ahorro — y esa honestidad es la que hace creíbles todos los demás números. Ajusta la campaña (apaga esa vacuna o revisa los datos) en lugar de forzar el resultado.</p></div>
+    </details>
+    <details>
+      <summary>«¿Qué significa el % de plantilla en riesgo?»</summary>
+      <div class="a"><p>A quién tiene sentido vacunar. Influenza va a toda la plantilla (100%); Zóster se dirige a mayores de 50 (~20%). El panel <strong>«¿De dónde sale el % de plantilla?»</strong> dentro del simulador muestra la tabla de edades que lo sustenta.</p></div>
+    </details>
+  </div>
+</section>
+
+<div class="golden">
+  <h2>La regla de oro</h2>
+  <p>Si el cliente te da un dato real — su costo por día, su precio, su plantilla — <strong>úsalo en ese momento y enfrente de él</strong>. El simulador convence más con los números del cliente que con los nuestros. Las objeciones no son un muro: son la parte de la venta donde la herramienta brilla.</p>
+</div>
+
+<footer>
+  <span>Grupo Leucotec · Simulador de ROI en Salud Corporativa</span>
+  <span>Desarrollado por N3 — Thinktech IA Laboratory</span>
+</footer>
+</div>
+
+</body>
+</html>
