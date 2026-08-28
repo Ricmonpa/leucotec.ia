@@ -31,10 +31,10 @@ export function KpiCards({ resultado }: KpiCardsProps) {
           <div className="flex items-center gap-2">
             <TrendingDown className="h-5 w-5 text-brand-danger" />
             <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Pérdida Proyectada
+              Pérdida Proyectada Anual
             </p>
           </div>
-          <p className="mb-2 text-xs text-slate-400">Ausentismo + atención médica</p>
+          <p className="mb-2 text-xs text-slate-400">Ausentismo + atención médica por año</p>
         </div>
         <div>
           <p className="text-3xl font-bold text-slate-800">
