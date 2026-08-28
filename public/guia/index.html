@@ -166,6 +166,13 @@ summary:focus-visible{outline:2px solid var(--red); outline-offset:-2px; border-
 .golden p{color:rgb(255 255 255 / .92); max-width:58ch; font-size:15.5px}
 .golden p strong{color:#fff}
 
+.anua-table-wrap{overflow-x:auto; margin-top:14px}
+.anua{width:100%; border-collapse:collapse; font-size:13px}
+.anua th{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); text-align:left; padding:6px 10px; border-bottom:1px solid var(--line)}
+.anua td{padding:7px 10px; border-bottom:1px solid var(--line); color:var(--body)}
+.anua td:first-child{color:var(--ink); font-weight:500}
+.anua th:not(:first-child), .anua td:not(:first-child){text-align:right}
+.anua tfoot td{font-weight:700; color:var(--ink); border-bottom:none; border-top:2px solid var(--line)}
 footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
   font-size:12.5px; color:var(--faint); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
 </style>
@@ -182,7 +189,7 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
 <section>
   <p class="sec-kicker">La pantalla principal</p>
   <h2>Tres números, una historia</h2>
-  <p class="sec-sub">Léelos siempre en este orden, de izquierda a derecha. Los montos de ejemplo son del demo (400 empleados).</p>
+  <p class="sec-sub">Léelos siempre en este orden, de izquierda a derecha. Los montos de ejemplo son del demo: 400 empleados y la campaña base de <strong>tres vacunas activas</strong> (Influenza, Neumococo y Herpes Zóster) — todo lo que enciendas o apagues cambia estas cifras.</p>
 
   <div class="kpis">
     <div class="kpi loss">
@@ -265,7 +272,16 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
       <div class="legend-item"><span class="row-tag">1</span><p><strong>Lo que se factura hoy</strong> por la campaña completa.</p></div>
       <div class="legend-item"><span class="row-tag">2</span><p><strong>Lo que se deducen de impuestos</strong> como previsión social. La vacunación al personal es gasto deducible.</p></div>
       <div class="legend-item"><span class="row-tag">3</span><p><strong>Factura menos deducción:</strong> lo que de verdad les cuesta la campaña.</p></div>
-      <div class="legend-item"><span class="row-tag">4</span><p><strong>Ese costo repartido entre los años que protege cada vacuna.</strong> Influenza se compra cada año, pero Zóster protege ~10 años y Neumococo ~5: no sería justo cargarlo todo a un solo año. <strong>Contra este renglón se compara el ahorro.</strong></p></div>
+      <div class="legend-item"><span class="row-tag">4</span><p><strong>Ese costo repartido entre los años que protege cada vacuna.</strong> No es un solo plazo: cada vacuna se divide entre los suyos y se suman. Así sale el costo anual, que es contra el que se compara el ahorro:</p></div>
+<div class="anua-table-wrap"><table class="anua">
+<thead><tr><th>Vacuna</th><th>Tras ISR</th><th>÷ años</th><th>Por año</th></tr></thead>
+<tbody>
+<tr><td>Influenza</td><td class="num">$151,380</td><td class="num">÷ 1</td><td class="num">$151,380</td></tr>
+<tr><td>Neumococo</td><td class="num">$403,680</td><td class="num">÷ 5</td><td class="num">$80,736</td></tr>
+<tr><td>Herpes Zóster</td><td class="num">$269,120</td><td class="num">÷ 10</td><td class="num">$26,912</td></tr>
+</tbody>
+<tfoot><tr><td colspan="3">Costo anual de la campaña</td><td class="num">$259,028</td></tr></tfoot>
+</table></div>
     </div>
   </div>
 </section>
