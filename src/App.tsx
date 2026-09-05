@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  cotizadorConfigurado,
+  enviarCotizacion,
+  type EstadoMargen,
+} from './lib/cotizador';
 import { AnalysisSequence } from './components/AnalysisSequence';
 import { Header } from './components/Header';
 import { InputPanel } from './components/InputPanel';
@@ -47,6 +52,24 @@ function Simulator() {
   const [analizando, setAnalizando] = useState(true);
   const terminarAnalisis = useCallback(() => setAnalizando(false), []);
 
+  // Envío al cotizador interno de Leucotec. El semáforo es un punto de color:
+  // el cliente lo ve y no le dice nada.
+  const [enviando, setEnviando] = useState(false);
+  const [estadoMargen, setEstadoMargen] = useState<EstadoMargen | null>(null);
+
+  async function handleEnviarCotizador() {
+    setEnviando(true);
+    const lead = leerLead();
+    const envio = await enviarCotizacion(
+      empresa,
+      enfermedades,
+      resultado,
+      lead?.nombre ?? '',
+    );
+    setEstadoMargen(envio.estado);
+    setEnviando(false);
+  }
+
   if (analizando) {
     return (
       <AnalysisSequence
@@ -65,6 +88,11 @@ function Simulator() {
           onExport={() => window.print()}
           onReset={reset}
           onReanalizar={() => setAnalizando(true)}
+          onEnviarCotizador={
+            cotizadorConfigurado() ? handleEnviarCotizador : undefined
+          }
+          enviandoCotizacion={enviando}
+          estadoMargen={estadoMargen}
         />
 
         <main className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">

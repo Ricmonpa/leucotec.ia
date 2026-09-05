@@ -1,10 +1,16 @@
-import { FileDown, RotateCcw, Sparkles } from 'lucide-react';
+import { ClipboardCheck, FileDown, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import type { EstadoMargen } from '../lib/cotizador';
 
 interface HeaderProps {
   empresa: string;
   onExport: () => void;
   onReset: () => void;
   onReanalizar: () => void;
+  /** Ausente si Leucotec aún no conecta su cotizador interno. */
+  onEnviarCotizador?: () => void;
+  enviandoCotizacion?: boolean;
+  /** Semáforo de margen. Es un punto de color: no dice cifras al cliente. */
+  estadoMargen?: EstadoMargen | null;
 }
 
 export function Header({
@@ -12,7 +18,16 @@ export function Header({
   onExport,
   onReset,
   onReanalizar,
+  onEnviarCotizador,
+  enviandoCotizacion,
+  estadoMargen,
 }: HeaderProps) {
+  const colorSemaforo =
+    estadoMargen === 'OK'
+      ? 'bg-emerald-500'
+      : estadoMargen === 'REVISAR'
+        ? 'bg-brand-primary'
+        : 'bg-slate-300';
   return (
     <header className="mb-6 flex flex-col gap-4 border-b-2 border-slate-200 pb-4 md:mb-8 md:flex-row md:items-center md:justify-between md:pb-5">
       <div className="flex items-center gap-3">
@@ -45,6 +60,26 @@ export function Header({
           <span className="mr-2 shrink-0 text-sm text-slate-500">Prospecto:</span>
           <span className="truncate font-bold text-brand-dark">{empresa}</span>
         </div>
+        {onEnviarCotizador && (
+          <button
+            onClick={onEnviarCotizador}
+            disabled={enviandoCotizacion}
+            title="Enviar a mi cotizador"
+            className="no-print relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-brand-primary disabled:opacity-60"
+          >
+            {enviandoCotizacion ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ClipboardCheck className="h-4 w-4" />
+            )}
+            {estadoMargen && !enviandoCotizacion && (
+              <span
+                aria-hidden="true"
+                className={`absolute right-1.5 top-1.5 h-2 w-2 rounded-full ${colorSemaforo}`}
+              />
+            )}
+          </button>
+        )}
         <button
           onClick={onReanalizar}
           title="Ejecutar el análisis de nuevo"
