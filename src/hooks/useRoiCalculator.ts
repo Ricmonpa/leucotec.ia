@@ -20,8 +20,11 @@ const EMPRESA_INICIAL: ParametrosEmpresa = {
 };
 
 /**
- * Catálogo de vacunas que Leucotec aplica en campañas corporativas
- * (presentación de servicios 2026).
+ * Catálogo de vacunas que Leucotec aplica en campañas corporativas.
+ *
+ * Los precios son de VENTA, derivados del cotizador operativo de Leucotec
+ * (ago 2026). Aquí no viven sus costos de compra ni sus márgenes: eso es
+ * información interna y este bundle es público.
  *
  * Las tres primeras vienen activas por defecto: son el esquema clásico de
  * campaña en empresa. El resto se activa con un clic según el cliente.
@@ -33,11 +36,11 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     tasaContagio: 0.2,
     diasAusencia: 4,
     costoMedicoPorCaso: 2000,
-    costoDosis: 450,
+    costoDosis: 440,
     aniosProteccion: 1,
     efectividad: 0.6,
     pctPoblacionRiesgo: 1.0,
-    nota: 'Campaña anual estacional. Toda la plantilla; es la de mayor incidencia.',
+    nota: 'Precio de Vaxigrip Tetra. Campaña anual estacional; toda la plantilla y la de mayor incidencia.',
   },
   {
     nombre: 'Neumococo',
@@ -45,11 +48,11 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     tasaContagio: 0.16,
     diasAusencia: 5,
     costoMedicoPorCaso: 6000,
-    costoDosis: 1200,
+    costoDosis: 1800,
     aniosProteccion: 5,
     efectividad: 0.8,
     pctPoblacionRiesgo: 1.0,
-    nota: 'Esquema PCV13 / PPSV23. Ojo: con una tasa de 16% se asume enfermedad respiratoria en general, mayormente ambulatoria. Si Leucotec se refiere a neumonía confirmada, la tasa debe bajar y el costo médico subir mucho.',
+    nota: 'Precio de Prevenar 20 (dosis única). Ojo: con una tasa de 16% se asume enfermedad respiratoria en general, mayormente ambulatoria. Si Leucotec se refiere a neumonía confirmada, la tasa debe bajar y el costo médico subir mucho.',
   },
   {
     nombre: 'Herpes Zóster',
@@ -57,11 +60,11 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     tasaContagio: 0.06,
     diasAusencia: 21,
     costoMedicoPorCaso: 22000,
-    costoDosis: 4000,
+    costoDosis: 3500,
     aniosProteccion: 10,
     efectividad: 0.9,
     pctPoblacionRiesgo: 0.2,
-    nota: 'Dirigida a mayores de 50 años (~20% de plantilla). Su valor está en la neuralgia postherpética, que incapacita meses. La dosis protege ~10 años y el modelo la amortiza a ese plazo.',
+    nota: 'Precio de Shingrix. Dirigida a mayores de 50 años (~20% de plantilla). Su valor está en la neuralgia postherpética, que incapacita meses. La dosis protege ~10 años y el modelo la amortiza a ese plazo.',
   },
   {
     nombre: 'COVID-19',
@@ -69,11 +72,11 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     tasaContagio: 0.15,
     diasAusencia: 7,
     costoMedicoPorCaso: 6000,
-    costoDosis: 600,
+    costoDosis: 1060,
     aniosProteccion: 1,
     efectividad: 0.55,
     pctPoblacionRiesgo: 1.0,
-    nota: 'Refuerzo anual. Ajusta los días según el protocolo de aislamiento del cliente.',
+    nota: 'Precio de Comirnaty XBB adulto. Refuerzo anual; ajusta los días según el protocolo de aislamiento del cliente.',
   },
   {
     nombre: 'Hepatitis A/B',
@@ -81,11 +84,11 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     tasaContagio: 0.02,
     diasAusencia: 20,
     costoMedicoPorCaso: 30000,
-    costoDosis: 900,
+    costoDosis: 1755,
     aniosProteccion: 20,
     efectividad: 0.95,
     pctPoblacionRiesgo: 1.0,
-    nota: 'Baja incidencia, pero cada caso implica una ausencia muy prolongada.',
+    nota: 'Esquema A+B: Havrix adulto + Engerix-B adulto. Baja incidencia, pero cada caso implica una ausencia muy prolongada.',
   },
   {
     nombre: 'Fiebre Amarilla',
@@ -93,11 +96,11 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     tasaContagio: 0.02,
     diasAusencia: 10,
     costoMedicoPorCaso: 45000,
-    costoDosis: 1100,
+    costoDosis: 3070,
     aniosProteccion: 10,
     efectividad: 0.99,
     pctPoblacionRiesgo: 0.03,
-    nota: 'Sólo personal que viaja a zonas endémicas (~3%). Suele ser requisito migratorio.',
+    nota: 'Precio de Stamaril. Sólo personal que viaja a zonas endémicas (~3%). Suele ser requisito migratorio.',
   },
   {
     nombre: 'VPH',
@@ -105,11 +108,11 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
     tasaContagio: 0,
     diasAusencia: 0,
     costoMedicoPorCaso: 0,
-    costoDosis: 2400,
+    costoDosis: 3700,
     aniosProteccion: 1,
     efectividad: 0.9,
     pctPoblacionRiesgo: 0.15,
-    nota: 'Prevención oncológica a largo plazo: no genera ahorro por ausentismo en el año. Se argumenta como prestación y RSE.',
+    nota: 'Precio de Gardasil 9. Prevención oncológica a largo plazo: no genera ahorro por ausentismo en el año. Se argumenta como prestación y RSE.',
   },
 ];
 
