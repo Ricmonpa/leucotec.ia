@@ -13,6 +13,8 @@ export function KpiCards({ resultado }: KpiCardsProps) {
   const ausentismo = useCountUp(resultado.costoAusentismoTotal);
   const medico = useCountUp(resultado.costoMedicoTotal);
   const inversion = useCountUp(resultado.inversionTotal);
+  const biologico = useCountUp(resultado.inversionVacunasTotal);
+  const operativo = useCountUp(resultado.logistica.total);
   const fiscal = useCountUp(resultado.ahorroFiscal);
   const neta = useCountUp(resultado.inversionNeta);
   const anualizada = useCountUp(resultado.inversionAnualizadaTotal);
@@ -22,6 +24,7 @@ export function KpiCards({ resultado }: KpiCardsProps) {
   const roi = roiAnimado.toFixed(1);
   const roiPositivo = resultado.roiGlobal >= 0;
   const conFiscal = resultado.ahorroFiscal > 0;
+  const conLogistica = resultado.logistica.total > 0;
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -58,6 +61,13 @@ export function KpiCards({ resultado }: KpiCardsProps) {
           </div>
           <p className="mb-2 text-xs text-slate-400">Campaña integral de vacunación</p>
         </div>
+
+        {conLogistica && (
+          <p className="mb-2 text-[11px] leading-snug text-slate-400">
+            {formatCurrency(biologico)} en biológico ·{' '}
+            {formatCurrency(operativo)} de operación
+          </p>
+        )}
 
         {conFiscal ? (
           <div>

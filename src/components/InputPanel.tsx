@@ -1,4 +1,4 @@
-import { Building2, Landmark, Settings2, Syringe } from 'lucide-react';
+import { Building2, Landmark, Settings2, Syringe, Truck } from 'lucide-react';
 import { CalculadoraCostoDia } from './CalculadoraCostoDia';
 import { productosDe } from '../lib/catalogoProductos';
 import { Field } from './ui/Field';
@@ -138,6 +138,103 @@ export function InputPanel({
               />
             </div>
           </>
+        )}
+      </div>
+
+      <div className="my-6 border-t border-slate-100" />
+
+      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-brand-dark">
+        <Truck className="h-5 w-5 text-brand-secondary" />
+        Logística de Campaña
+      </h2>
+      <p className="mb-4 text-xs text-slate-400">
+        Enfermeras, insumos y recolección de RPBI: lo que cuesta llevar la
+        campaña a la empresa.
+      </p>
+
+      <div
+        className={`rounded-xl border p-4 transition-colors ${
+          empresa.incluirLogistica
+            ? 'border-slate-200 bg-slate-50'
+            : 'border-slate-100 bg-white'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setEmpresaCampo('incluirLogistica', !empresa.incluirLogistica)
+          }
+          aria-pressed={empresa.incluirLogistica}
+          className="flex w-full items-center gap-2 text-left"
+        >
+          <span
+            className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+              empresa.incluirLogistica ? 'bg-brand-primary' : 'bg-slate-300'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+                empresa.incluirLogistica ? 'left-[18px]' : 'left-0.5'
+              }`}
+            />
+          </span>
+          <span
+            className={`text-sm font-bold ${
+              empresa.incluirLogistica ? 'text-brand-primary' : 'text-slate-400'
+            }`}
+          >
+            Incluir costo operativo
+          </span>
+        </button>
+
+        {empresa.incluirLogistica && (
+          <div className="mt-3 space-y-3">
+            <button
+              type="button"
+              onClick={() => setEmpresaCampo('sedeForanea', !empresa.sedeForanea)}
+              className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left"
+            >
+              <span className="text-xs font-semibold text-slate-600">Sede</span>
+              <span className="text-sm font-bold text-brand-primary">
+                {empresa.sedeForanea ? 'Foránea' : 'Local'}
+              </span>
+            </button>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                type="number"
+                label="Jornadas"
+                suffix="días"
+                min={1}
+                value={empresa.diasVacunacion}
+                onChange={(v) => setEmpresaCampo('diasVacunacion', v)}
+              />
+              <Field
+                type="number"
+                label="Enfermeras/día"
+                min={1}
+                value={empresa.enfermerasPorDia}
+                onChange={(v) => setEmpresaCampo('enfermerasPorDia', v)}
+              />
+            </div>
+
+            {empresa.sedeForanea && (
+              <Field
+                type="number"
+                label="Transporte y viáticos"
+                prefix="$"
+                min={0}
+                hint="Vuelos o casetas, hospedaje y comidas del equipo"
+                value={empresa.viaticos}
+                onChange={(v) => setEmpresaCampo('viaticos', v)}
+              />
+            )}
+
+            <p className="text-[10px] leading-snug text-slate-400">
+              Los insumos por dosis bajan con el volumen, y el servicio
+              certificado de RPBI se cobra una vez por campaña.
+            </p>
+          </div>
         )}
       </div>
 

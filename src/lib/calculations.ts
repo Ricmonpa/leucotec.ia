@@ -38,6 +38,16 @@ export interface ParametrosEmpresa {
   pctDeducible: number;
   /** Tasa de ISR corporativo (0-1). En México, 30%. */
   tasaISR: number;
+  /** Si la cotización incluye el costo operativo de la campaña. */
+  incluirLogistica: boolean;
+  /** Sede: local (misma ciudad) o foráneo (con viáticos). */
+  sedeForanea: boolean;
+  /** Jornadas de vacunación necesarias. */
+  diasVacunacion: number;
+  /** Enfermeras por jornada. */
+  enfermerasPorDia: number;
+  /** Transporte y viáticos del equipo, por campaña. */
+  viaticos: number;
 }
 
 /** Supuestos epidemiológicos y de costo de una enfermedad concreta. */
@@ -98,6 +108,51 @@ export interface ResultadoEnfermedad {
   ahorroNeto: number;
 }
 
+/**
+ * Costo operativo de llevar la campaña a la empresa.
+ *
+ * Sin esto la cotización queda incompleta: la vacuna es sólo una parte del
+ * precio. Enfermeras, insumos y recolección de RPBI son costos reales que
+ * Leucotec factura en cada campaña.
+ */
+export function calcularLogistica(
+  empresa: ParametrosEmpresa,
+  dosisTotales: number,
+): CostoLogistica {
+  if (!empresa.incluirLogistica || dosisTotales === 0) {
+    return {
+      dosisTotales,
+      insumos: 0,
+      enfermeras: 0,
+      rpbi: 0,
+      viaticos: 0,
+      total: 0,
+    };
+  }
+
+  const dias = Math.max(1, empresa.diasVacunacion || 1);
+  const porDia = Math.max(1, empresa.enfermerasPorDia || 1);
+  const jornadas = dias * porDia;
+
+  const tarifa = empresa.sedeForanea
+    ? COSTO_ENFERMERA_FORANEA
+    : COSTO_ENFERMERA_LOCAL;
+
+  const insumos = dosisTotales * insumosPorDosis(dosisTotales);
+  // Cada jornada de enfermera requiere su prueba COVID.
+  const enfermeras = jornadas * (tarifa + PRUEBA_COVID_PERSONAL);
+  const viaticos = empresa.sedeForanea ? empresa.viaticos : 0;
+
+  return {
+    dosisTotales,
+    insumos,
+    enfermeras,
+    rpbi: SERVICIO_RPBI,
+    viaticos,
+    total: insumos + enfermeras + SERVICIO_RPBI + viaticos,
+  };
+}
+
 /** Resultado global de la simulación. */
 export interface ResultadoSimulacion {
   detalle: ResultadoEnfermedad[];
@@ -109,7 +164,13 @@ export interface ResultadoSimulacion {
   costoTotalExpuesto: number;
   /** Pérdida evitada por la campaña, antes de restar la inversión. */
   perdidaEvitadaTotal: number;
-  /** Inversión bruta en vacunas (lo que se factura). */
+  /** Dosis a aplicar en la campaña. */
+  dosisTotales: number;
+  /** Sólo el biológico. */
+  inversionVacunasTotal: number;
+  /** Costo operativo: insumos, enfermeras, RPBI y viáticos. */
+  logistica: CostoLogistica;
+  /** Inversión bruta total: biológico + logística. */
   inversionTotal: number;
   /**
    * ISR que la empresa deja de pagar por deducir el gasto como previsión
@@ -124,6 +185,41 @@ export interface ResultadoSimulacion {
   ahorroNetoTotal: number;
   /** ROI anual en porcentaje: ahorro neto / inversión anualizada * 100. */
   roiGlobal: number;
+}
+
+// ---------------------------------------------------------------------------
+// Costos operativos de campaña (cotizador Leucotec, ago 2026).
+// ---------------------------------------------------------------------------
+
+/** Honorario por enfermera y jornada. Foráneo incluye su sobrecosto. */
+const COSTO_ENFERMERA_LOCAL = 800;
+const COSTO_ENFERMERA_FORANEA = 801;
+
+/** Servicio certificado de recolección de RPBI, por campaña. */
+const SERVICIO_RPBI = 1200;
+
+/** Prueba COVID al personal de Leucotec, por enfermera y jornada. */
+const PRUEBA_COVID_PERSONAL = 335;
+
+/**
+ * Insumos por dosis aplicada: parche, torunda, gel, cubrebocas, guantes y
+ * campo. Baja por volumen porque los botes RPBI y el servicio se prorratean
+ * entre más dosis.
+ */
+export function insumosPorDosis(dosisTotales: number): number {
+  if (dosisTotales <= 100) return 35.77;
+  if (dosisTotales <= 500) return 10.79;
+  return 7.66;
+}
+
+/** Desglose del costo operativo de llevar la campaña a la empresa. */
+export interface CostoLogistica {
+  dosisTotales: number;
+  insumos: number;
+  enfermeras: number;
+  rpbi: number;
+  viaticos: number;
+  total: number;
 }
 
 /** Costo de un día completo de inactividad de un empleado. */
@@ -185,7 +281,13 @@ export function calcularSimulacion(
   const costoMedicoTotal = detalle.reduce((s, d) => s + d.costoMedico, 0);
   const costoTotalExpuesto = costoAusentismoTotal + costoMedicoTotal;
   const perdidaEvitadaTotal = detalle.reduce((s, d) => s + d.perdidaEvitada, 0);
-  const inversionTotal = detalle.reduce((s, d) => s + d.inversionVacunas, 0);
+  const inversionVacunasTotal = detalle.reduce((s, d) => s + d.inversionVacunas, 0);
+
+  // Una dosis por persona en cada vacuna activa de la campaña.
+  const dosisTotales = detalle.reduce((s, d) => s + d.poblacionRiesgo, 0);
+  const logistica = calcularLogistica(empresa, dosisTotales);
+
+  const inversionTotal = inversionVacunasTotal + logistica.total;
 
   // Efecto fiscal: la deducción reduce la BASE gravable, no el impuesto.
   // El flujo que la empresa se ahorra es (gasto deducible) x (tasa de ISR).
@@ -195,12 +297,16 @@ export function calcularSimulacion(
 
   const inversionNeta = inversionTotal - ahorroFiscal;
 
+  const factorFiscal = empresa.aplicarBeneficioFiscal
+    ? 1 - empresa.pctDeducible * empresa.tasaISR
+    : 1;
+
   // Beneficio anual contra costo anual: la comparación justa cuando la
-  // protección de varias vacunas dura más de un ejercicio.
-  const inversionAnualizadaTotal = detalle.reduce(
-    (s, d) => s + d.inversionAnualizada,
-    0,
-  );
+  // protección de varias vacunas dura más de un ejercicio. La logística no se
+  // amortiza: se consume en la jornada, y se repite en cada campaña.
+  const inversionAnualizadaTotal =
+    detalle.reduce((s, d) => s + d.inversionAnualizada, 0) +
+    logistica.total * factorFiscal;
   const ahorroNetoTotal = perdidaEvitadaTotal - inversionAnualizadaTotal;
   const roiGlobal =
     inversionAnualizadaTotal > 0
@@ -213,6 +319,9 @@ export function calcularSimulacion(
     costoMedicoTotal,
     costoTotalExpuesto,
     perdidaEvitadaTotal,
+    dosisTotales,
+    inversionVacunasTotal,
+    logistica,
     inversionTotal,
     ahorroFiscal,
     inversionNeta,
