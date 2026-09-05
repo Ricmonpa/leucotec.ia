@@ -1,5 +1,6 @@
 import { Building2, Landmark, Settings2, Syringe } from 'lucide-react';
 import { CalculadoraCostoDia } from './CalculadoraCostoDia';
+import { productosDe } from '../lib/catalogoProductos';
 import { Field } from './ui/Field';
 import type { UseRoiCalculator } from '../hooks/useRoiCalculator';
 
@@ -193,6 +194,15 @@ export function InputPanel({
 
             {enf.activa && (
               <>
+                <ProductoSelector
+                  enfermedad={enf.nombre}
+                  producto={enf.producto}
+                  onElegir={(nombre, precio) => {
+                    setEnfermedadCampo(i, 'producto', nombre);
+                    setEnfermedadCampo(i, 'costoDosis', precio);
+                  }}
+                />
+
                 {enf.nota && (
                   <p className="mb-3 mt-2 border-l-2 border-slate-200 pl-2 text-[11px] leading-snug text-slate-400">
                     {enf.nota}
@@ -274,5 +284,53 @@ export function InputPanel({
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Elige el producto comercial y carga su precio de lista.
+ *
+ * El vendedor razona en marcas ("Shingrix"), no en categorías clínicas, y así
+ * no teclea el precio de memoria. Sigue pudiendo ajustarlo abajo si negocia
+ * un precio distinto.
+ */
+function ProductoSelector({
+  enfermedad,
+  producto,
+  onElegir,
+}: {
+  enfermedad: string;
+  producto: string;
+  onElegir: (nombre: string, precio: number) => void;
+}) {
+  const opciones = productosDe(enfermedad);
+  if (opciones.length === 0) return null;
+
+  const actual = opciones.find((o) => o.nombre === producto);
+
+  return (
+    <div className="mb-3 mt-3">
+      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        Producto
+      </label>
+      <select
+        value={producto}
+        onChange={(e) => {
+          const elegido = opciones.find((o) => o.nombre === e.target.value);
+          if (elegido) onElegir(elegido.nombre, elegido.precio);
+        }}
+        disabled={opciones.length === 1}
+        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:text-slate-500"
+      >
+        {opciones.map((o) => (
+          <option key={o.nombre} value={o.nombre}>
+            {o.nombre}
+          </option>
+        ))}
+      </select>
+      {actual?.detalle && (
+        <p className="mt-1 text-[10px] text-slate-400">{actual.detalle}</p>
+      )}
+    </div>
   );
 }

@@ -46,6 +46,8 @@ export interface ParametrosEnfermedad {
   nombre: string;
   /** Si está incluida en la campaña que se cotiza. Las inactivas no suman. */
   activa: boolean;
+  /** Nombre comercial elegido del catálogo de Leucotec. */
+  producto: string;
   /** Justificación del supuesto, para defenderlo ante el CFO. */
   nota?: string;
   /** Tasa de contagio anual dentro de la población en riesgo (0-1). */
