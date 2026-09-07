@@ -17,7 +17,8 @@ import type { ParametrosEnfermedad } from './calculations';
  * URL del Apps Script del cotizador. Es distinta a la del registro de leads:
  * ese script vive en el libro de prospectos, éste en el libro de costos.
  */
-const COTIZADOR_URL: string = 'PEGA_AQUI_LA_URL_DEL_COTIZADOR';
+const COTIZADOR_URL: string =
+  'https://script.google.com/macros/s/AKfycbzzc92nUTXnWFJeBLEv2l3knTHRStCxDP7v9JJ-kKAWRldMeErxd3cjPJRqGgSKhtY44Q/exec';
 
 export type EstadoMargen = 'OK' | 'REVISAR' | 'SIN_CONEXION';
 
