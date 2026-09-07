@@ -218,21 +218,20 @@ export function InputPanel({
               />
             </div>
 
-            {empresa.sedeForanea && (
-              <Field
-                type="number"
-                label="Transporte y viáticos"
-                prefix="$"
-                min={0}
-                hint="Vuelos o casetas, hospedaje y comidas del equipo"
-                value={empresa.viaticos}
-                onChange={(v) => setEmpresaCampo('viaticos', v)}
-              />
-            )}
+            <Field
+              type="number"
+              label="Transporte y alimentación"
+              prefix="$"
+              min={0}
+              hint="Camión, taxi o vuelo del equipo, más comidas si aplican"
+              value={empresa.viaticos}
+              onChange={(v) => setEmpresaCampo('viaticos', v)}
+            />
 
             <p className="text-[10px] leading-snug text-slate-400">
               Los insumos por dosis bajan con el volumen, y el servicio
-              certificado de RPBI se cobra una vez por campaña.
+              certificado de RPBI se cobra una vez por campaña. Referencia de
+              comidas: $120 desayuno, $150 comida, $130 cena.
             </p>
           </div>
         )}

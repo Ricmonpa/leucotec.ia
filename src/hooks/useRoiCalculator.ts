@@ -21,7 +21,7 @@ const EMPRESA_INICIAL: ParametrosEmpresa = {
   sedeForanea: false,
   diasVacunacion: 3,
   enfermerasPorDia: 2,
-  viaticos: 1500,
+  viaticos: 0, // se captura por campaña: varía con la sede y el traslado
 };
 
 /**

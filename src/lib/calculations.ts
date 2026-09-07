@@ -46,7 +46,10 @@ export interface ParametrosEmpresa {
   diasVacunacion: number;
   /** Enfermeras por jornada. */
   enfermerasPorDia: number;
-  /** Transporte y viáticos del equipo, por campaña. */
+  /**
+   * Transporte y alimentación del equipo, por campaña. Muy variable: puede
+   * ser camión, taxi o vuelo, con o sin comidas. Se captura a mano.
+   */
   viaticos: number;
 }
 
@@ -141,7 +144,9 @@ export function calcularLogistica(
   const insumos = dosisTotales * insumosPorDosis(dosisTotales);
   // Cada jornada de enfermera requiere su prueba COVID.
   const enfermeras = jornadas * (tarifa + PRUEBA_COVID_PERSONAL);
-  const viaticos = empresa.sedeForanea ? empresa.viaticos : 0;
+  // Los viáticos no dependen de la sede: una campaña local también puede
+  // llevar taxi y comidas del equipo. Así lo captura el Excel de Leucotec.
+  const viaticos = empresa.viaticos || 0;
 
   return {
     dosisTotales,
