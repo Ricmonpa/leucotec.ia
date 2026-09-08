@@ -199,12 +199,12 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
     </div>
     <div class="kpi">
       <span class="k-label">Inversión Leucotec</span>
-      <span class="k-value num">$259,028<span style="font-size:13px">/año</span></span>
+      <span class="k-value num">$305,073<span style="font-size:13px">/año</span></span>
       <span class="k-note">Lo que cuesta protegerse. Fíjate en el <strong>último renglón</strong> de la tarjeta: el costo anual (abajo te explico los 4 renglones).</span>
     </div>
     <div class="kpi win">
       <span class="k-label">Ahorro operativo neto</span>
-      <span class="k-value num">$948,422</span>
+      <span class="k-value num">$902,377</span>
       <span class="k-note">Lo que dejan de perder, menos lo que pagan. <strong>Va directo a utilidades</strong>: un costo evitado no trae costos asociados.</span>
     </div>
   </div>
@@ -225,11 +225,17 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
       <div class="fields">
         <span class="field">Nombre empresa</span>
         <span class="field">Total empleados</span>
+        <span class="field">Vacunas activas</span>
+        <span class="field">Producto</span>
         <span class="field">Costo dosis</span>
         <span class="field">% plantilla a vacunar</span>
-        <span class="field">Vacunas activas</span>
+        <span class="field">Jornadas</span>
+        <span class="field">Enfermeras por día</span>
+        <span class="field">Sede</span>
+        <span class="field">Transporte y alimentación</span>
       </div>
-      <p>Son los datos de <strong>esta</strong> cotización. El costo dosis es su precio real por persona (esquema completo). Solo las vacunas encendidas suman al cálculo.</p>
+      <p>Son los datos de <strong>esta</strong> cotización. Elige el <strong>producto por su nombre comercial</strong> (Shingrix, Prevenar 20…) y el precio se carga solo; si negociaste otro, escríbelo encima. Solo las vacunas encendidas suman al cálculo.</p>
+      <p style="margin-top:10px">En <strong>Logística de campaña</strong> van las jornadas, las enfermeras por día y el transporte con comidas del equipo. Los insumos y la recolección de RPBI se calculan solos.</p>
     </div>
 
     <div class="rule y">
@@ -263,10 +269,10 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
   <div class="anatomy">
     <div class="inv-card" aria-hidden="true">
       <span class="k-label">Inversión Leucotec</span>
-      <div class="inv-line"><span class="row-tag">1</span><span class="inv-strike num">$980,000</span></div>
-      <div class="inv-line"><span class="row-tag">2</span><span class="inv-isr num">Recupera $155,820 de ISR</span></div>
-      <div class="inv-line"><span class="row-tag">3</span><span><span class="inv-real-label">Costo real</span><br><span class="inv-real num">$824,180</span></span></div>
-      <div class="inv-line"><span class="row-tag">4</span><span class="inv-year num">≈ $259,028/año amortizando la protección</span></div>
+      <div class="inv-line"><span class="row-tag">1</span><span class="inv-strike num">$1,190,751</span></div>
+      <div class="inv-line"><span class="row-tag">2</span><span class="inv-isr num">Recupera $189,329 de ISR</span></div>
+      <div class="inv-line"><span class="row-tag">3</span><span><span class="inv-real-label">Costo real</span><br><span class="inv-real num">$1,001,421</span></span></div>
+      <div class="inv-line"><span class="row-tag">4</span><span class="inv-year num">≈ $305,073/año amortizando la protección</span></div>
     </div>
     <div class="legend">
       <div class="legend-item"><span class="row-tag">1</span><p><strong>Lo que se factura hoy</strong> por la campaña completa.</p></div>
@@ -276,11 +282,12 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
 <div class="anua-table-wrap"><table class="anua">
 <thead><tr><th>Vacuna</th><th>Tras ISR</th><th>÷ años</th><th>Por año</th></tr></thead>
 <tbody>
-<tr><td>Influenza</td><td class="num">$151,380</td><td class="num">÷ 1</td><td class="num">$151,380</td></tr>
-<tr><td>Neumococo</td><td class="num">$403,680</td><td class="num">÷ 5</td><td class="num">$80,736</td></tr>
-<tr><td>Herpes Zóster</td><td class="num">$269,120</td><td class="num">÷ 10</td><td class="num">$26,912</td></tr>
+<tr><td>Influenza</td><td class="num">$148,016</td><td class="num">÷ 1</td><td class="num">$148,016</td></tr>
+<tr><td>Neumococo</td><td class="num">$605,520</td><td class="num">÷ 5</td><td class="num">$121,104</td></tr>
+<tr><td>Herpes Zóster</td><td class="num">$235,480</td><td class="num">÷ 10</td><td class="num">$23,548</td></tr>
+<tr><td>Logística de campaña</td><td class="num">$12,405</td><td class="num">÷ 1</td><td class="num">$12,405</td></tr>
 </tbody>
-<tfoot><tr><td colspan="3">Costo anual de la campaña</td><td class="num">$259,028</td></tr></tfoot>
+<tfoot><tr><td colspan="3">Costo anual de la campaña</td><td class="num">$305,073</td></tr></tfoot>
 </table></div>
     </div>
   </div>
@@ -293,8 +300,8 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
 
   <div class="script">
     <div class="frase"><q>Hoy ustedes ya están perdiendo $1.6 millones al año por enfermedades prevenibles — solo que ese costo está escondido entre incapacidades y gastos médicos.</q><small>Señala la tarjeta roja.</small></div>
-    <div class="frase"><q>Protegerse les cuesta $259 mil al año — pagan una vez y quedan protegidos varios años.</q><small>Señala el último renglón de Inversión.</small></div>
-    <div class="frase"><q>La diferencia, $948 mil, se queda en su bolsillo. Es una ganancia que hoy están regalando.</q><small>Cierra con la tarjeta grande.</small></div>
+    <div class="frase"><q>Protegerse les cuesta $305 mil al año — pagan una vez y quedan protegidos varios años.</q><small>Señala el último renglón de Inversión.</small></div>
+    <div class="frase"><q>La diferencia, $902 mil, se queda en su bolsillo. Es una ganancia que hoy están regalando.</q><small>Cierra con la tarjeta grande.</small></div>
   </div>
 </section>
 
