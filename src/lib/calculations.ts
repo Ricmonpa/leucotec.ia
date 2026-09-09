@@ -38,8 +38,15 @@ export interface ParametrosEmpresa {
   pctDeducible: number;
   /** Tasa de ISR corporativo (0-1). En México, 30%. */
   tasaISR: number;
-  /** Si la cotización incluye el costo operativo de la campaña. */
-  incluirLogistica: boolean;
+  /**
+   * Si la logística se le COBRA al cliente como línea aparte.
+   *
+   * Leucotec normalmente la absorbe: su cotización al cliente es sólo el
+   * biológico, y la operación sale de su margen. Por eso arranca apagado.
+   * El costo se calcula siempre —es real— pero sólo entra al precio si se
+   * cobra.
+   */
+  cobrarLogistica: boolean;
   /** Sede: local (misma ciudad) o foráneo (con viáticos). */
   sedeForanea: boolean;
   /** Jornadas de vacunación necesarias. */
@@ -114,15 +121,15 @@ export interface ResultadoEnfermedad {
 /**
  * Costo operativo de llevar la campaña a la empresa.
  *
- * Sin esto la cotización queda incompleta: la vacuna es sólo una parte del
- * precio. Enfermeras, insumos y recolección de RPBI son costos reales que
- * Leucotec factura en cada campaña.
+ * Se calcula SIEMPRE, se cobre o no: enfermeras, insumos y recolección de
+ * RPBI son costos reales de cada campaña y tienen que pesar en el margen
+ * de Leucotec aunque el cliente no los vea desglosados.
  */
 export function calcularLogistica(
   empresa: ParametrosEmpresa,
   dosisTotales: number,
 ): CostoLogistica {
-  if (!empresa.incluirLogistica || dosisTotales === 0) {
+  if (dosisTotales === 0) {
     return {
       dosisTotales,
       insumos: 0,
@@ -173,8 +180,13 @@ export interface ResultadoSimulacion {
   dosisTotales: number;
   /** Sólo el biológico. */
   inversionVacunasTotal: number;
-  /** Costo operativo: insumos, enfermeras, RPBI y viáticos. */
+  /**
+   * Costo operativo de la campaña: insumos, enfermeras, RPBI y viáticos.
+   * Se calcula siempre; entra al precio sólo si se cobra al cliente.
+   */
   logistica: CostoLogistica;
+  /** Si la logística se sumó al precio del cliente. */
+  logisticaCobrada: boolean;
   /** Inversión bruta total: biológico + logística. */
   inversionTotal: number;
   /**
@@ -292,7 +304,10 @@ export function calcularSimulacion(
   const dosisTotales = detalle.reduce((s, d) => s + d.poblacionRiesgo, 0);
   const logistica = calcularLogistica(empresa, dosisTotales);
 
-  const inversionTotal = inversionVacunasTotal + logistica.total;
+  // Al cliente sólo se le cobra lo que Leucotec factura: el biológico y,
+  // si así se decidió, la logística.
+  const logisticaCobrada = empresa.cobrarLogistica ? logistica.total : 0;
+  const inversionTotal = inversionVacunasTotal + logisticaCobrada;
 
   // Efecto fiscal: la deducción reduce la BASE gravable, no el impuesto.
   // El flujo que la empresa se ahorra es (gasto deducible) x (tasa de ISR).
@@ -311,7 +326,7 @@ export function calcularSimulacion(
   // amortiza: se consume en la jornada, y se repite en cada campaña.
   const inversionAnualizadaTotal =
     detalle.reduce((s, d) => s + d.inversionAnualizada, 0) +
-    logistica.total * factorFiscal;
+    logisticaCobrada * factorFiscal;
   const ahorroNetoTotal = perdidaEvitadaTotal - inversionAnualizadaTotal;
   const roiGlobal =
     inversionAnualizadaTotal > 0
@@ -327,6 +342,7 @@ export function calcularSimulacion(
     dosisTotales,
     inversionVacunasTotal,
     logistica,
+    logisticaCobrada: empresa.cobrarLogistica,
     inversionTotal,
     ahorroFiscal,
     inversionNeta,

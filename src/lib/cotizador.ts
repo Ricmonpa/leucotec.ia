@@ -90,7 +90,7 @@ export async function enviarCotizacion(
         logistica: {
           dosis: resultado.logistica.dosisTotales,
           total: Math.round(resultado.logistica.total),
-          cobradaAlCliente: empresa.incluirLogistica,
+          cobradaAlCliente: empresa.cobrarLogistica,
         },
       }),
     });

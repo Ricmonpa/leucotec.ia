@@ -24,7 +24,7 @@ export function KpiCards({ resultado }: KpiCardsProps) {
   const roi = roiAnimado.toFixed(1);
   const roiPositivo = resultado.roiGlobal >= 0;
   const conFiscal = resultado.ahorroFiscal > 0;
-  const conLogistica = resultado.logistica.total > 0;
+  const conLogistica = resultado.logisticaCobrada && resultado.logistica.total > 0;
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

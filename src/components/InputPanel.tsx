@@ -148,13 +148,14 @@ export function InputPanel({
         Logística de Campaña
       </h2>
       <p className="mb-4 text-xs text-slate-400">
-        Enfermeras, insumos y recolección de RPBI: lo que cuesta llevar la
-        campaña a la empresa.
+        Enfermeras, insumos y recolección de RPBI. Normalmente Leucotec los
+        absorbe y no aparecen en la cotización; enciéndelo sólo si a este
+        cliente se le cobran aparte.
       </p>
 
       <div
         className={`rounded-xl border p-4 transition-colors ${
-          empresa.incluirLogistica
+          empresa.cobrarLogistica
             ? 'border-slate-200 bg-slate-50'
             : 'border-slate-100 bg-white'
         }`}
@@ -162,33 +163,32 @@ export function InputPanel({
         <button
           type="button"
           onClick={() =>
-            setEmpresaCampo('incluirLogistica', !empresa.incluirLogistica)
+            setEmpresaCampo('cobrarLogistica', !empresa.cobrarLogistica)
           }
-          aria-pressed={empresa.incluirLogistica}
+          aria-pressed={empresa.cobrarLogistica}
           className="flex w-full items-center gap-2 text-left"
         >
           <span
             className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-              empresa.incluirLogistica ? 'bg-brand-primary' : 'bg-slate-300'
+              empresa.cobrarLogistica ? 'bg-brand-primary' : 'bg-slate-300'
             }`}
           >
             <span
               className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
-                empresa.incluirLogistica ? 'left-[18px]' : 'left-0.5'
+                empresa.cobrarLogistica ? 'left-[18px]' : 'left-0.5'
               }`}
             />
           </span>
           <span
             className={`text-sm font-bold ${
-              empresa.incluirLogistica ? 'text-brand-primary' : 'text-slate-400'
+              empresa.cobrarLogistica ? 'text-brand-primary' : 'text-slate-400'
             }`}
           >
-            Incluir costo operativo
+            Cobrar logística al cliente
           </span>
         </button>
 
-        {empresa.incluirLogistica && (
-          <div className="mt-3 space-y-3">
+        <div className="mt-3 space-y-3">
             <button
               type="button"
               onClick={() => setEmpresaCampo('sedeForanea', !empresa.sedeForanea)}
@@ -229,12 +229,13 @@ export function InputPanel({
             />
 
             <p className="text-[10px] leading-snug text-slate-400">
-              Los insumos por dosis bajan con el volumen, y el servicio
-              certificado de RPBI se cobra una vez por campaña. Referencia de
-              comidas: $120 desayuno, $150 comida, $130 cena.
+              Estos datos se capturan siempre: aunque no se le cobren al
+              cliente, son costo real de la campaña y cuentan para el margen.
+              Los insumos por dosis bajan con el volumen y el servicio
+              certificado de RPBI se cobra una vez. Referencia de comidas:
+              $120 desayuno, $150 comida, $130 cena.
             </p>
-          </div>
-        )}
+        </div>
       </div>
 
       <div className="my-6 border-t border-slate-100" />

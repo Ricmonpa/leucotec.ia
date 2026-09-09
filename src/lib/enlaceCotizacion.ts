@@ -12,7 +12,7 @@
 // Formato:
 //   ?empresa=Grupo+Bimbo&emp=400&dia=1300
 //   &v=Vaxigrip Tetra:400:440,Prevenar 20:400:1800
-//   &log=1&dias=3&enf=2&via=0&sede=local
+//   &log=0&dias=3&enf=2&via=0&sede=local   (log=1 sólo si se le cobra)
 // ---------------------------------------------------------------------------
 
 import { PRODUCTOS_POR_ENFERMEDAD } from './catalogoProductos';
@@ -59,7 +59,7 @@ export function leerCotizacionDeUrl(
   const costoDia = num(p.get('dia'));
   if (costoDia !== undefined) empresa.costoDiaEmpleado = costoDia;
 
-  if (p.has('log')) empresa.incluirLogistica = p.get('log') !== '0';
+  if (p.has('log')) empresa.cobrarLogistica = p.get('log') === '1';
   if (p.has('sede')) empresa.sedeForanea = p.get('sede') === 'foranea';
 
   const dias = num(p.get('dias'));
