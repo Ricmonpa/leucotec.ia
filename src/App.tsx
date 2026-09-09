@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { FileCheck2 } from 'lucide-react';
 import {
   cotizadorConfigurado,
   enviarCotizacion,
@@ -45,6 +46,7 @@ function Simulator() {
     setEmpresaCampo,
     setEnfermedadCampo,
     reset,
+    desdeCotizacion,
   } = useRoiCalculator();
 
   // Sólo en el arranque (o al pedirlo). Las ediciones en vivo no pasan por
@@ -94,6 +96,17 @@ function Simulator() {
           enviandoCotizacion={enviando}
           estadoMargen={estadoMargen}
         />
+
+        {desdeCotizacion && (
+          <div className="no-print mb-6 flex items-start gap-3 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 p-4">
+            <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+            <p className="text-xs leading-relaxed text-emerald-800">
+              <strong>Cargado desde el cotizador.</strong> Las vacunas, personas
+              y precios vienen de la cotización. Puedes ajustar cualquier dato
+              aquí sin afectar la hoja.
+            </p>
+          </div>
+        )}
 
         <main className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           <InputPanel

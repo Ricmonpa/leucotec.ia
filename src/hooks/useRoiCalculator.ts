@@ -5,6 +5,7 @@ import {
   type ParametrosEnfermedad,
   type ResultadoSimulacion,
 } from '../lib/calculations';
+import { aplicarCotizacion, leerCotizacionDeUrl } from '../lib/enlaceCotizacion';
 
 /** Valores iniciales del prospecto (demo). */
 const EMPRESA_INICIAL: ParametrosEmpresa = {
@@ -206,10 +207,35 @@ const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
   },
 ];
 
+/**
+ * Arranca desde la cotización que venga en el enlace, si viene.
+ *
+ * Leucotec cotiza en su hoja y salta aquí con un clic; el simulador debe
+ * abrir con esos datos puestos, sin que nadie recapture nada.
+ */
+function estadoInicial(): {
+  empresa: ParametrosEmpresa;
+  enfermedades: ParametrosEnfermedad[];
+  desdeCotizacion: boolean;
+} {
+  const cot = leerCotizacionDeUrl();
+  if (!cot) {
+    return {
+      empresa: EMPRESA_INICIAL,
+      enfermedades: ENFERMEDADES_INICIALES,
+      desdeCotizacion: false,
+    };
+  }
+  const aplicado = aplicarCotizacion(EMPRESA_INICIAL, ENFERMEDADES_INICIALES, cot);
+  return { ...aplicado, desdeCotizacion: true };
+}
+
 export interface UseRoiCalculator {
   empresa: ParametrosEmpresa;
   enfermedades: ParametrosEnfermedad[];
   resultado: ResultadoSimulacion;
+  /** True si el simulador se abrió desde un enlace del cotizador. */
+  desdeCotizacion: boolean;
   setEmpresaCampo: <K extends keyof ParametrosEmpresa>(
     campo: K,
     valor: ParametrosEmpresa[K],
@@ -227,9 +253,10 @@ export interface UseRoiCalculator {
  * y recalcula la simulación de forma memoizada en cada cambio.
  */
 export function useRoiCalculator(): UseRoiCalculator {
-  const [empresa, setEmpresa] = useState<ParametrosEmpresa>(EMPRESA_INICIAL);
+  const [inicial] = useState(estadoInicial);
+  const [empresa, setEmpresa] = useState<ParametrosEmpresa>(inicial.empresa);
   const [enfermedades, setEnfermedades] = useState<ParametrosEnfermedad[]>(
-    ENFERMEDADES_INICIALES,
+    inicial.enfermedades,
   );
 
   const resultado = useMemo(
@@ -251,15 +278,18 @@ export function useRoiCalculator(): UseRoiCalculator {
     );
   };
 
+  // Restablecer devuelve a la cotización que llegó por enlace, si hubo una;
+  // si no, a los valores de demostración.
   const reset = () => {
-    setEmpresa(EMPRESA_INICIAL);
-    setEnfermedades(ENFERMEDADES_INICIALES);
+    setEmpresa(inicial.empresa);
+    setEnfermedades(inicial.enfermedades);
   };
 
   return {
     empresa,
     enfermedades,
     resultado,
+    desdeCotizacion: inicial.desdeCotizacion,
     setEmpresaCampo,
     setEnfermedadCampo,
     reset,
