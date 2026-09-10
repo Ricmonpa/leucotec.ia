@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.svg">
-<title>Guía del Simulador ROI</title>
+<title>Guía de venta Leucotec</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
 :root{
@@ -173,6 +173,30 @@ summary:focus-visible{outline:2px solid var(--red); outline-offset:-2px; border-
 .anua td:first-child{color:var(--ink); font-weight:500}
 .anua th:not(:first-child), .anua td:not(:first-child){text-align:right}
 .anua tfoot td{font-weight:700; color:var(--ink); border-bottom:none; border-top:2px solid var(--line)}
+.ruta{display:grid; gap:12px; counter-reset:etapa}
+.etapa{
+  background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+  padding:18px 20px 18px 58px; position:relative;
+}
+.etapa::before{
+  counter-increment:etapa; content:counter(etapa);
+  position:absolute; left:20px; top:18px;
+  width:24px; height:24px; border-radius:50%;
+  background:var(--ink); color:var(--card);
+  font:700 13px/24px Archivo, Inter, sans-serif; text-align:center;
+}
+.etapa h3{font-size:15px; margin-bottom:3px}
+.etapa p{font-size:14px; max-width:58ch}
+.etapa .donde{
+  display:inline-block; margin-top:8px; font-size:11px; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase;
+  padding:3px 9px; border-radius:6px; background:var(--card2); color:var(--faint);
+}
+.aviso{
+  margin-top:18px; border-left:3px solid var(--green); background:var(--green-soft);
+  border-radius:0 10px 10px 0; padding:14px 18px;
+}
+.aviso p{font-size:13.5px; color:var(--ink); max-width:60ch}
 footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
   font-size:12.5px; color:var(--faint); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
 </style>
@@ -181,10 +205,46 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
 <body>
 <div class="wrap">
 <header>
-  <span class="eyebrow">Grupo Leucotec · Analítica Corporativa</span>
-  <h1>Guía del Simulador ROI</h1>
-  <p class="lede">El simulador cuenta <strong>una sola historia con tres números</strong>: lo que el cliente ya pierde por enfermedad, lo que cuesta protegerse y lo que se queda en su bolsillo. Esta guía te dice qué significa cada dato, cuál se toca y cuál no.</p>
+  <span class="eyebrow">Grupo Leucotec · Uso interno</span>
+  <h1>Guía de venta</h1>
+  <p class="lede">Son <strong>dos herramientas conectadas</strong>: cotizas en el Sheet y de ahí saltas al simulador, que cuenta la historia con tres números — lo que el cliente ya pierde, lo que cuesta protegerse y lo que se queda en su bolsillo. Esta guía cubre las dos.</p>
 </header>
+
+<section>
+  <p class="sec-kicker">Antes de abrir el simulador</p>
+  <h2>Cotizar en el Sheet</h2>
+  <p class="sec-sub">La cotización nace aquí. El simulador es el segundo paso, no el primero.</p>
+
+  <div class="ruta">
+    <div class="etapa">
+      <h3>Llena los datos del cliente</h3>
+      <p>Empresa, total de empleados y costo día de ausencia. Abajo, las jornadas de vacunación, enfermeras por día y transporte con comidas.</p>
+      <span class="donde">Pestaña Cotizar · filas 4 a 10</span>
+    </div>
+
+    <div class="etapa">
+      <h3>Elige productos del menú</h3>
+      <p>En la columna Producto <strong>despliega el menú</strong> y elige la marca. Pon cuántas personas y el resto se llena solo: precio, costo y margen. Si negociaste otro precio, escríbelo encima.</p>
+      <span class="donde">Pestaña Cotizar · filas 14 a 25</span>
+    </div>
+
+    <div class="etapa">
+      <h3>Revisa el semáforo</h3>
+      <p>Abajo de la tabla aparece el total y el margen. Dice <strong>OK</strong> si va sobre el mínimo del 20%, o <strong>REVISAR</strong> si el precio se quedó corto.</p>
+      <span class="donde">Pestaña Cotizar · fila 27</span>
+    </div>
+
+    <div class="etapa">
+      <h3>Da clic al enlace</h3>
+      <p>Hasta abajo aparece un enlace. Al abrirlo, <strong>el simulador ya trae todo puesto</strong>: empresa, plantilla, vacunas y precios. No captures nada dos veces.</p>
+      <span class="donde">Pestaña Cotizar · fila 32</span>
+    </div>
+  </div>
+
+  <div class="aviso">
+    <p><strong>Los costos de compra sólo viven en el Sheet.</strong> El simulador es público y lo ve el cliente: nunca recibe un costo, sólo el producto, las personas y el precio que ya le cotizaste.</p>
+  </div>
+</section>
 
 <section>
   <p class="sec-kicker">La pantalla principal</p>
@@ -199,12 +259,12 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
     </div>
     <div class="kpi">
       <span class="k-label">Inversión Leucotec</span>
-      <span class="k-value num">$305,073<span style="font-size:13px">/año</span></span>
+      <span class="k-value num">$292,668<span style="font-size:13px">/año</span></span>
       <span class="k-note">Lo que cuesta protegerse. Fíjate en el <strong>último renglón</strong> de la tarjeta: el costo anual (abajo te explico los 4 renglones).</span>
     </div>
     <div class="kpi win">
       <span class="k-label">Ahorro operativo neto</span>
-      <span class="k-value num">$902,377</span>
+      <span class="k-value num">$914,782</span>
       <span class="k-note">Lo que dejan de perder, menos lo que pagan. <strong>Va directo a utilidades</strong>: un costo evitado no trae costos asociados.</span>
     </div>
   </div>
@@ -269,10 +329,10 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
   <div class="anatomy">
     <div class="inv-card" aria-hidden="true">
       <span class="k-label">Inversión Leucotec</span>
-      <div class="inv-line"><span class="row-tag">1</span><span class="inv-strike num">$1,190,751</span></div>
-      <div class="inv-line"><span class="row-tag">2</span><span class="inv-isr num">Recupera $189,329 de ISR</span></div>
-      <div class="inv-line"><span class="row-tag">3</span><span><span class="inv-real-label">Costo real</span><br><span class="inv-real num">$1,001,421</span></span></div>
-      <div class="inv-line"><span class="row-tag">4</span><span class="inv-year num">≈ $305,073/año amortizando la protección</span></div>
+      <div class="inv-line"><span class="row-tag">1</span><span class="inv-strike num">$1,176,000</span></div>
+      <div class="inv-line"><span class="row-tag">2</span><span class="inv-isr num">Recupera $186,984 de ISR</span></div>
+      <div class="inv-line"><span class="row-tag">3</span><span><span class="inv-real-label">Costo real</span><br><span class="inv-real num">$989,016</span></span></div>
+      <div class="inv-line"><span class="row-tag">4</span><span class="inv-year num">≈ $292,668/año amortizando la protección</span></div>
     </div>
     <div class="legend">
       <div class="legend-item"><span class="row-tag">1</span><p><strong>Lo que se factura hoy</strong> por la campaña completa.</p></div>
@@ -285,9 +345,8 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
 <tr><td>Influenza</td><td class="num">$148,016</td><td class="num">÷ 1</td><td class="num">$148,016</td></tr>
 <tr><td>Neumococo</td><td class="num">$605,520</td><td class="num">÷ 5</td><td class="num">$121,104</td></tr>
 <tr><td>Herpes Zóster</td><td class="num">$235,480</td><td class="num">÷ 10</td><td class="num">$23,548</td></tr>
-<tr><td>Logística de campaña</td><td class="num">$12,405</td><td class="num">÷ 1</td><td class="num">$12,405</td></tr>
 </tbody>
-<tfoot><tr><td colspan="3">Costo anual de la campaña</td><td class="num">$305,073</td></tr></tfoot>
+<tfoot><tr><td colspan="3">Costo anual de la campaña</td><td class="num">$292,668</td></tr></tfoot>
 </table></div>
     </div>
   </div>
@@ -300,8 +359,8 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
 
   <div class="script">
     <div class="frase"><q>Hoy ustedes ya están perdiendo $1.6 millones al año por enfermedades prevenibles — solo que ese costo está escondido entre incapacidades y gastos médicos.</q><small>Señala la tarjeta roja.</small></div>
-    <div class="frase"><q>Protegerse les cuesta $305 mil al año — pagan una vez y quedan protegidos varios años.</q><small>Señala el último renglón de Inversión.</small></div>
-    <div class="frase"><q>La diferencia, $902 mil, se queda en su bolsillo. Es una ganancia que hoy están regalando.</q><small>Cierra con la tarjeta grande.</small></div>
+    <div class="frase"><q>Protegerse les cuesta $293 mil al año — pagan una vez y quedan protegidos varios años.</q><small>Señala el último renglón de Inversión.</small></div>
+    <div class="frase"><q>La diferencia, $915 mil, se queda en su bolsillo. Es una ganancia que hoy están regalando.</q><small>Cierra con la tarjeta grande.</small></div>
   </div>
 </section>
 
