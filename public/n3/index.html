@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<title>Cotizador y Simulador Leucotec</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Diapositiva de fondo para Zoom: se comprometió a un solo tema claro,
+   que es lo que mejor se lee al compartir pantalla. Todo pintado explícito. */
+:root{
+  --tinta:#1C1F23;
+  --suave:#6E7176;
+  --tenue:#9B9DA1;
+  --piso:#F7F5F5;
+  --linea:#E4E0E0;
+  --rojo:#DC052B;
+  --rojo-hondo:#9E0420;
+  --navy:#1F2A44;
+  --verde:#0E9F6E;
+  --papel:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0}
+body{
+  background:var(--piso);
+  color:var(--tinta);
+  font:400 16px/1.5 Inter, ui-sans-serif, system-ui, sans-serif;
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+}
+
+.slide{
+  width:min(100%, 1180px);
+  aspect-ratio:16/9;
+  background:var(--papel);
+  border:1px solid var(--linea);
+  border-radius:6px;
+  padding:clamp(18px,2.6vw,34px) clamp(20px,3vw,42px);
+  display:flex; flex-direction:column;
+  box-shadow:0 1px 2px rgb(28 31 35 / .05), 0 18px 40px -28px rgb(28 31 35 / .28);
+}
+
+/* ---- encabezado ---- */
+.top{display:flex; justify-content:space-between; align-items:baseline; gap:16px}
+.marca{
+  font-family:Archivo, sans-serif; font-weight:700;
+  font-size:clamp(10px,1.05vw,13px); letter-spacing:.16em; text-transform:uppercase;
+  color:var(--rojo);
+}
+.tema{
+  font-size:clamp(10px,1.05vw,13px); letter-spacing:.05em; color:var(--tenue);
+}
+
+/* ---- el mapa ---- */
+.mapa{
+  flex:1;
+  display:grid;
+  grid-template-columns:1fr clamp(140px,18vw,250px) 1fr;
+  align-items:center;
+  gap:clamp(10px,1.6vw,24px);
+  padding:clamp(16px,3.2vw,44px) 0;
+}
+
+.nodo{display:flex; flex-direction:column; gap:clamp(8px,1.1vw,14px)}
+.chapa{
+  align-self:flex-start;
+  font-family:Archivo, sans-serif; font-weight:700;
+  font-size:clamp(9px,.95vw,11.5px); letter-spacing:.13em; text-transform:uppercase;
+  padding:5px 11px; border-radius:999px;
+}
+.nodo.interno .chapa{background:#EDF0F6; color:var(--navy)}
+.nodo.cliente .chapa{background:#FDECEF; color:var(--rojo)}
+
+.caja{
+  border-radius:12px;
+  padding:clamp(18px,2.5vw,32px) clamp(18px,2.6vw,34px);
+  color:#fff;
+}
+.nodo.interno .caja{background:var(--navy)}
+.nodo.cliente .caja{background:linear-gradient(135deg, var(--rojo), var(--rojo-hondo))}
+.caja h2{
+  font-family:Archivo, sans-serif; font-weight:800;
+  font-size:clamp(22px,3vw,42px); line-height:1.03; letter-spacing:-.015em;
+  text-wrap:balance; color:#fff;
+}
+.caja .donde{
+  margin-top:6px; font-size:clamp(11px,1.2vw,15.5px); color:rgb(255 255 255 / .8);
+}
+
+.puntos{display:flex; flex-direction:column; gap:clamp(4px,.55vw,7px); padding-left:2px}
+.punto{
+  display:flex; align-items:baseline; gap:9px;
+  font-size:clamp(11.5px,1.32vw,17px); color:var(--suave); line-height:1.4;
+}
+.punto::before{
+  content:""; flex:none; width:5px; height:5px; border-radius:50%;
+  transform:translateY(-2px);
+}
+.nodo.interno .punto::before{background:var(--navy)}
+.nodo.cliente .punto::before{background:var(--rojo)}
+.punto b{color:var(--tinta); font-weight:600}
+
+/* ---- el puente ---- */
+.puente{display:flex; flex-direction:column; gap:clamp(12px,1.8vw,22px); align-items:stretch}
+.via{display:flex; flex-direction:column; gap:5px; align-items:center; text-align:center}
+.flecha{
+  position:relative; width:100%; height:2px; background:var(--linea);
+}
+.flecha::after{
+  content:""; position:absolute; top:50%; width:0; height:0;
+  border-top:5px solid transparent; border-bottom:5px solid transparent;
+}
+.flecha.der::after{right:0; transform:translateY(-50%); border-left:8px solid var(--rojo)}
+.flecha.izq::after{left:0; transform:translateY(-50%); border-right:8px solid var(--navy)}
+.via .que{
+  font-size:clamp(10px,1.1vw,14px); line-height:1.3; color:var(--suave);
+}
+.via .que b{display:block; color:var(--tinta); font-weight:600}
+
+/* ---- recorrido + candado ---- */
+.pie{
+  border-top:1px solid var(--linea); padding-top:clamp(12px,1.7vw,20px);
+  display:flex; align-items:center; justify-content:space-between; gap:clamp(14px,2vw,28px);
+}
+.pasos{display:flex; align-items:center; gap:clamp(8px,1.3vw,18px); flex:1; min-width:0}
+.paso{display:flex; align-items:baseline; gap:8px; min-width:0}
+.paso .n{
+  flex:none;
+  font-family:Archivo, sans-serif; font-weight:700;
+  font-size:clamp(9px,.95vw,11.5px);
+  width:clamp(17px,1.9vw,23px); height:clamp(17px,1.9vw,23px);
+  border-radius:50%; background:var(--piso); color:var(--suave);
+  display:inline-flex; align-items:center; justify-content:center;
+  transform:translateY(2px);
+}
+.paso span{font-size:clamp(10.5px,1.15vw,14.5px); color:var(--tinta); line-height:1.3}
+.sep{flex:none; width:clamp(10px,1.6vw,22px); height:1px; background:var(--linea)}
+
+.candado{
+  flex:none; display:flex; align-items:center; gap:8px;
+  background:#E9F6F1; border-radius:8px;
+  padding:clamp(7px,.9vw,11px) clamp(10px,1.3vw,16px);
+}
+.candado svg{flex:none; width:clamp(13px,1.4vw,17px); height:auto}
+.candado p{font-size:clamp(9.5px,1.02vw,13px); color:#0B6B4B; line-height:1.3; max-width:26ch}
+.candado b{font-weight:600}
+</style>
+
+</head>
+<body>
+<div class="slide">
+  <div class="top">
+    <span class="marca">Grupo Leucotec &nbsp;·&nbsp; N3 Thinktech IA Laboratory</span>
+    <span class="tema">Cómo se conectan las dos herramientas</span>
+  </div>
+
+  <div class="mapa">
+    <div class="nodo interno">
+      <span class="chapa">Uso interno</span>
+      <div class="caja">
+        <h2>Cotizador</h2>
+        <p class="donde">Google Sheets · privado</p>
+      </div>
+      <div class="puntos">
+        <p class="punto"><b>43 productos</b> con su costo real</p>
+        <p class="punto">Precio, costo y <b>margen automáticos</b></p>
+        <p class="punto">Semáforo contra su <b>mínimo de 20%</b></p>
+      </div>
+    </div>
+
+    <div class="puente">
+      <div class="via">
+        <span class="que"><b>Un clic</b>abre el ROI cargado</span>
+        <span class="flecha der"></span>
+      </div>
+      <div class="via">
+        <span class="flecha izq"></span>
+        <span class="que"><b>De regreso</b>queda con su margen</span>
+      </div>
+    </div>
+
+    <div class="nodo cliente">
+      <span class="chapa">Frente al cliente</span>
+      <div class="caja">
+        <h2>Simulador de ROI</h2>
+        <p class="donde">Web · leucotec.ia.potenttial.site</p>
+      </div>
+      <div class="puntos">
+        <p class="punto">Lo que <b>ya pierden</b> por ausentismo</p>
+        <p class="punto">Lo que cuesta <b>protegerse al año</b></p>
+        <p class="punto">El <b>ahorro neto</b> y el retorno</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pie">
+    <div class="pasos">
+      <div class="paso"><span class="n">1</span><span>Cleide cotiza</span></div>
+      <span class="sep"></span>
+      <div class="paso"><span class="n">2</span><span>Muestra el ROI al cliente</span></div>
+      <span class="sep"></span>
+      <div class="paso"><span class="n">3</span><span>Cierra con el margen a la vista</span></div>
+    </div>
+
+    <div class="candado">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" stroke-width="2" aria-hidden="true">
+        <rect x="4" y="10" width="16" height="11" rx="2" fill="none"/>
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none"/>
+      </svg>
+      <p>Sus <b>costos de compra</b> nunca salen del Sheet</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

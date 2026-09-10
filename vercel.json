@@ -11,6 +11,14 @@
       "destination": "/guia/index.html"
     },
     {
+      "source": "/n3",
+      "destination": "/n3/index.html"
+    },
+    {
+      "source": "/n3/",
+      "destination": "/n3/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
