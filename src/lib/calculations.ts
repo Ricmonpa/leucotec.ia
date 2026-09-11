@@ -47,8 +47,13 @@ export interface ParametrosEmpresa {
    * cobra.
    */
   cobrarLogistica: boolean;
-  /** Sede: local (misma ciudad) o foráneo (con viáticos). */
+  /** Sede: local (misma ciudad) o foránea. */
   sedeForanea: boolean;
+  /**
+   * Jornada de más de 4 horas. En sede local cambia la tarifa de enfermera:
+   * $600 de 1 a 4 horas, $800 si es más. En sede foránea no aplica.
+   */
+  jornadaLarga: boolean;
   /** Jornadas de vacunación necesarias. */
   diasVacunacion: number;
   /** Enfermeras por jornada. */
@@ -134,7 +139,6 @@ export function calcularLogistica(
       dosisTotales,
       insumos: 0,
       enfermeras: 0,
-      rpbi: 0,
       viaticos: 0,
       total: 0,
     };
@@ -142,26 +146,25 @@ export function calcularLogistica(
 
   const dias = Math.max(1, empresa.diasVacunacion || 1);
   const porDia = Math.max(1, empresa.enfermerasPorDia || 1);
-  const jornadas = dias * porDia;
 
   const tarifa = empresa.sedeForanea
-    ? COSTO_ENFERMERA_FORANEA
-    : COSTO_ENFERMERA_LOCAL;
+    ? ENFERMERA_FORANEA
+    : empresa.jornadaLarga
+      ? ENFERMERA_LOCAL_LARGA
+      : ENFERMERA_LOCAL_CORTA;
 
-  const insumos = dosisTotales * insumosPorDosis(dosisTotales);
-  // Cada jornada de enfermera requiere su prueba COVID.
-  const enfermeras = jornadas * (tarifa + PRUEBA_COVID_PERSONAL);
+  const insumos = dosisTotales * INSUMOS_POR_DOSIS;
+  const enfermeras = tarifa * porDia * dias;
   // Los viáticos no dependen de la sede: una campaña local también puede
-  // llevar taxi y comidas del equipo. Así lo captura el Excel de Leucotec.
-  const viaticos = empresa.viaticos || 0;
+  // llevar taxi y comidas. La prueba COVID va una sola vez, no por jornada.
+  const viaticos = (empresa.viaticos || 0) + PRUEBA_COVID_PERSONAL;
 
   return {
     dosisTotales,
     insumos,
     enfermeras,
-    rpbi: SERVICIO_RPBI,
     viaticos,
-    total: insumos + enfermeras + SERVICIO_RPBI + viaticos,
+    total: insumos + enfermeras + viaticos,
   };
 }
 
@@ -208,33 +211,39 @@ export interface ResultadoSimulacion {
 // Costos operativos de campaña (cotizador Leucotec, ago 2026).
 // ---------------------------------------------------------------------------
 
-/** Honorario por enfermera y jornada. Foráneo incluye su sobrecosto. */
-const COSTO_ENFERMERA_LOCAL = 800;
-const COSTO_ENFERMERA_FORANEA = 801;
+// Estas constantes replican el cotizador de Leucotec celda por celda. Si se
+// cambian, el margen que ve el vendedor deja de cuadrar con su Excel.
 
-/** Servicio certificado de recolección de RPBI, por campaña. */
-const SERVICIO_RPBI = 1200;
+/**
+ * Honorario por enfermera y jornada.
+ * Su fórmula: IF(sede="FORANEO", 801, IF(horas="1 a 4", 600, 800)).
+ */
+const ENFERMERA_FORANEA = 801;
+const ENFERMERA_LOCAL_CORTA = 600; // jornada de 1 a 4 horas
+const ENFERMERA_LOCAL_LARGA = 800; // jornada de más de 4 horas
 
-/** Prueba COVID al personal de Leucotec, por enfermera y jornada. */
+/** Prueba COVID al personal. En su Excel se cobra UNA vez por campaña. */
 const PRUEBA_COVID_PERSONAL = 335;
 
 /**
- * Insumos por dosis aplicada: parche, torunda, gel, cubrebocas, guantes y
- * campo. Baja por volumen porque los botes RPBI y el servicio se prorratean
- * entre más dosis.
+ * Insumos por dosis aplicada.
+ *
+ * Leucotec usa el PROMEDIO de sus tres tramos por volumen —$35.77 (1-100),
+ * $10.79 (101-500), $7.66 (500+)— y no el tramo que toca. Se replica su
+ * criterio para que el margen cuadre con su hoja.
+ *
+ * Ojo: este monto YA incluye los botes de RPBI y el servicio certificado de
+ * recolección, prorrateados. No se suman aparte.
  */
-export function insumosPorDosis(dosisTotales: number): number {
-  if (dosisTotales <= 100) return 35.77;
-  if (dosisTotales <= 500) return 10.79;
-  return 7.66;
-}
+const INSUMOS_POR_DOSIS = 18.073;
 
 /** Desglose del costo operativo de llevar la campaña a la empresa. */
 export interface CostoLogistica {
   dosisTotales: number;
+  /** Incluye los botes y el servicio de RPBI prorrateados por dosis. */
   insumos: number;
   enfermeras: number;
-  rpbi: number;
+  /** Transporte, comidas y la prueba COVID del personal. */
   viaticos: number;
   total: number;
 }

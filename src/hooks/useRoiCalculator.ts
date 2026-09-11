@@ -21,6 +21,7 @@ const EMPRESA_INICIAL: ParametrosEmpresa = {
   // Leucotec cotiza sólo el biológico; la operación sale de su margen.
   cobrarLogistica: false,
   sedeForanea: false,
+  jornadaLarga: true, // más de 4 horas: tarifa de enfermera $800
   diasVacunacion: 3,
   enfermerasPorDia: 2,
   viaticos: 0, // se captura por campaña: varía con la sede y el traslado

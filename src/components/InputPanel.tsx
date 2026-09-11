@@ -200,6 +200,21 @@ export function InputPanel({
               </span>
             </button>
 
+            {!empresa.sedeForanea && (
+              <button
+                type="button"
+                onClick={() => setEmpresaCampo('jornadaLarga', !empresa.jornadaLarga)}
+                className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left"
+              >
+                <span className="text-xs font-semibold text-slate-600">
+                  Horas por jornada
+                </span>
+                <span className="text-sm font-bold text-brand-primary">
+                  {empresa.jornadaLarga ? 'Más de 4' : '1 a 4'}
+                </span>
+              </button>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <Field
                 type="number"
@@ -231,9 +246,9 @@ export function InputPanel({
             <p className="text-[10px] leading-snug text-slate-400">
               Estos datos se capturan siempre: aunque no se le cobren al
               cliente, son costo real de la campaña y cuentan para el margen.
-              Los insumos por dosis bajan con el volumen y el servicio
-              certificado de RPBI se cobra una vez. Referencia de comidas:
-              $120 desayuno, $150 comida, $130 cena.
+              Los insumos salen a $18.07 por dosis, monto que ya incluye los
+              botes y el servicio de RPBI. Referencia de comidas: $120
+              desayuno, $150 comida, $130 cena.
             </p>
         </div>
       </div>
