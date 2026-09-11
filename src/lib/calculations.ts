@@ -47,22 +47,57 @@ export interface ParametrosEmpresa {
    * cobra.
    */
   cobrarLogistica: boolean;
-  /** Sede: local (misma ciudad) o foránea. */
-  sedeForanea: boolean;
+  /**
+   * Sedes de la campaña. Su cotizador admite hasta cuatro, y pueden operar
+   * AL MISMO TIEMPO: cada una lleva su propio equipo, así que los días no se
+   * suman entre sedes, se cuentan por separado.
+   */
+  sedes: Sede[];
+}
+
+/**
+ * Una sede de la campaña: una planta, un corporativo, una ciudad.
+ *
+ * Cada sede se cotiza por su cuenta porque todo cambia con ella: la tarifa
+ * de la enfermera, el traslado, las comidas y cuántas dosis se aplican ahí.
+ */
+export interface Sede {
+  /** Destino, como lo escribe el vendedor: "CDMX", "Planta Toluca". */
+  destino: string;
+  /**
+   * Dosis que se aplican en esta sede. Si es 0, la sede toma las dosis que
+   * no se hayan repartido a las demás.
+   */
+  dosis: number;
+  /** Fuera de la ciudad: la enfermera cuesta $801 y no depende de la jornada. */
+  foranea: boolean;
   /**
    * Jornada de más de 4 horas. En sede local cambia la tarifa de enfermera:
    * $600 de 1 a 4 horas, $800 si es más. En sede foránea no aplica.
    */
   jornadaLarga: boolean;
-  /** Jornadas de vacunación necesarias. */
-  diasVacunacion: number;
-  /** Enfermeras por jornada. */
+  /** Enfermeras por jornada en esta sede. */
   enfermerasPorDia: number;
-  /**
-   * Transporte y alimentación del equipo, por campaña. Muy variable: puede
-   * ser camión, taxi o vuelo, con o sin comidas. Se captura a mano.
-   */
-  viaticos: number;
+  /** Jornadas de vacunación en esta sede. */
+  diasVacunacion: number;
+  /** Traslado del equipo: taxi, camión o avión. */
+  transporte: number;
+  /** Alimentación del equipo (su referencia: 120 desayuno, 150 comida, 130 cena). */
+  comidas: number;
+}
+
+/** Una sede vacía, lista para capturar. */
+export function sedeNueva(destino = ''): Sede {
+  return {
+    destino,
+    dosis: 0,
+    foranea: false,
+    jornadaLarga: true,
+    enfermerasPorDia: 1,
+    diasVacunacion: 1,
+    transporte: 0,
+    comidas: 0,
+  };
 }
 
 /** Supuestos epidemiológicos y de costo de una enfermedad concreta. */
@@ -134,38 +169,88 @@ export function calcularLogistica(
   empresa: ParametrosEmpresa,
   dosisTotales: number,
 ): CostoLogistica {
-  if (dosisTotales === 0) {
-    return {
-      dosisTotales,
-      insumos: 0,
-      enfermeras: 0,
-      viaticos: 0,
-      total: 0,
-    };
-  }
+  const sedes = repartirDosis(empresa.sedes, dosisTotales);
+  const detalle = sedes.map(calcularSede);
 
-  const dias = Math.max(1, empresa.diasVacunacion || 1);
-  const porDia = Math.max(1, empresa.enfermerasPorDia || 1);
-
-  const tarifa = empresa.sedeForanea
-    ? ENFERMERA_FORANEA
-    : empresa.jornadaLarga
-      ? ENFERMERA_LOCAL_LARGA
-      : ENFERMERA_LOCAL_CORTA;
-
-  const insumos = dosisTotales * INSUMOS_POR_DOSIS;
-  const enfermeras = tarifa * porDia * dias;
-  // Los viáticos no dependen de la sede: una campaña local también puede
-  // llevar taxi y comidas. La prueba COVID va una sola vez, no por jornada.
-  const viaticos = (empresa.viaticos || 0) + PRUEBA_COVID_PERSONAL;
+  const insumos = detalle.reduce((s, d) => s + d.insumos, 0);
+  const enfermeras = detalle.reduce((s, d) => s + d.enfermeras, 0);
+  const viaticos = detalle.reduce((s, d) => s + d.viaticos, 0);
+  const dosisAsignadas = detalle.reduce((s, d) => s + d.dosis, 0);
 
   return {
+    sedes: detalle,
     dosisTotales,
+    dosisAsignadas,
     insumos,
     enfermeras,
     viaticos,
     total: insumos + enfermeras + viaticos,
   };
+}
+
+/**
+ * Costo de una sola sede.
+ *
+ * Replica su Excel renglón por renglón: la tarifa sale de la sede y la
+ * jornada, la prueba COVID se paga una vez por sede (no por jornada), y los
+ * insumos por dosis ya traen dentro los botes y el servicio de RPBI.
+ */
+function calcularSede(sede: Sede): CostoSede {
+  const dias = Math.max(0, sede.diasVacunacion || 0);
+  const porDia = Math.max(0, sede.enfermerasPorDia || 0);
+
+  const tarifa = sede.foranea
+    ? ENFERMERA_FORANEA
+    : sede.jornadaLarga
+      ? ENFERMERA_LOCAL_LARGA
+      : ENFERMERA_LOCAL_CORTA;
+
+  const enfermeras = tarifa * porDia * dias;
+  // Su fórmula: IF(enfermeras por día > 0; 335; 0). Sin equipo en sitio no
+  // hay a quién hacerle la prueba.
+  const pruebaCovid = porDia > 0 ? PRUEBA_COVID_PERSONAL : 0;
+  const viaticos = (sede.transporte || 0) + (sede.comidas || 0) + pruebaCovid;
+  const insumos = sede.dosis * INSUMOS_POR_DOSIS;
+
+  return {
+    destino: sede.destino,
+    dosis: sede.dosis,
+    foranea: sede.foranea,
+    jornadaLarga: sede.jornadaLarga,
+    enfermerasPorDia: porDia,
+    diasVacunacion: dias,
+    tarifaEnfermera: tarifa,
+    /** Turnos de enfermera facturados: enfermeras/día x jornadas. */
+    turnos: porDia * dias,
+    enfermeras,
+    transporte: sede.transporte || 0,
+    comidas: sede.comidas || 0,
+    pruebaCovid,
+    viaticos,
+    insumos,
+    total: enfermeras + viaticos + insumos,
+  };
+}
+
+/**
+ * Reparte las dosis de la campaña entre las sedes.
+ *
+ * El vendedor puede escribir cuántas dosis van en cada sede. Las que deje en
+ * cero se completan solas con lo que sobre, para no obligarlo a hacer la
+ * cuenta cuando hay una sola sede (el caso normal).
+ */
+function repartirDosis(sedes: Sede[], dosisTotales: number): Sede[] {
+  if (!sedes.length) return [];
+
+  const declaradas = sedes.reduce((s, x) => s + Math.max(0, x.dosis || 0), 0);
+  const restante = Math.max(0, dosisTotales - declaradas);
+  const primeraSinDosis = sedes.findIndex((x) => !x.dosis || x.dosis <= 0);
+
+  return sedes.map((sede, i) => {
+    const dosis =
+      i === primeraSinDosis ? restante : Math.max(0, sede.dosis || 0);
+    return { ...sede, dosis };
+  });
 }
 
 /** Resultado global de la simulación. */
@@ -222,7 +307,7 @@ const ENFERMERA_FORANEA = 801;
 const ENFERMERA_LOCAL_CORTA = 600; // jornada de 1 a 4 horas
 const ENFERMERA_LOCAL_LARGA = 800; // jornada de más de 4 horas
 
-/** Prueba COVID al personal. En su Excel se cobra UNA vez por campaña. */
+/** Prueba COVID al personal. En su Excel se cobra UNA vez por SEDE. */
 const PRUEBA_COVID_PERSONAL = 335;
 
 /**
@@ -237,9 +322,40 @@ const PRUEBA_COVID_PERSONAL = 335;
  */
 const INSUMOS_POR_DOSIS = 18.073;
 
+/** Costo operativo de una sede, ya desglosado para la cotización. */
+export interface CostoSede {
+  destino: string;
+  dosis: number;
+  foranea: boolean;
+  jornadaLarga: boolean;
+  enfermerasPorDia: number;
+  diasVacunacion: number;
+  /** Honorario por enfermera y jornada según sede y horario. */
+  tarifaEnfermera: number;
+  /** Turnos facturados: enfermeras por día x jornadas. */
+  turnos: number;
+  enfermeras: number;
+  transporte: number;
+  comidas: number;
+  pruebaCovid: number;
+  /** Transporte + comidas + prueba COVID. */
+  viaticos: number;
+  /** Incluye los botes y el servicio de RPBI prorrateados por dosis. */
+  insumos: number;
+  total: number;
+}
+
 /** Desglose del costo operativo de llevar la campaña a la empresa. */
 export interface CostoLogistica {
+  /** Una entrada por sede, en el orden en que las capturó el vendedor. */
+  sedes: CostoSede[];
+  /** Dosis de la campaña completa. */
   dosisTotales: number;
+  /**
+   * Dosis efectivamente repartidas entre las sedes. Si no cuadra con
+   * dosisTotales, faltan sedes por capturar y la UI debe avisarlo.
+   */
+  dosisAsignadas: number;
   /** Incluye los botes y el servicio de RPBI prorrateados por dosis. */
   insumos: number;
   enfermeras: number;

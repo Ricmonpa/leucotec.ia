@@ -20,6 +20,12 @@
   }
 }
 
+/* La cotizacion formal solo existe en el PDF: en pantalla el vendedor esta
+   trabajando el ROI, no leyendo el documento final. */
+.solo-print {
+  display: none;
+}
+
 /* Al exportar a PDF se oculta el panel de inputs y se limpia el fondo */
 @media print {
   .no-print {
@@ -27,5 +33,27 @@
   }
   body {
     background: white;
+  }
+  /* Primero se argumenta el ROI; la cotizacion arranca en hoja nueva. */
+  .solo-print {
+    display: block;
+    break-before: page;
+    page-break-before: always;
+  }
+  /* Sin esto el navegador imprime los fondos en blanco y la cotizacion
+     pierde los encabezados y el renglon del total. */
+  .solo-print,
+  .solo-print * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Una tabla partida a la mitad entre dos hojas se lee pesimo. */
+  .solo-print table,
+  .solo-print tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  @page {
+    margin: 14mm;
   }
 }

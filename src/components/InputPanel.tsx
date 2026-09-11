@@ -2,18 +2,30 @@ import { Building2, Landmark, Settings2, Syringe, Truck } from 'lucide-react';
 import { CalculadoraCostoDia } from './CalculadoraCostoDia';
 import { productosDe } from '../lib/catalogoProductos';
 import { Field } from './ui/Field';
+import { SedesCampana } from './SedesCampana';
 import type { UseRoiCalculator } from '../hooks/useRoiCalculator';
 
 type InputPanelProps = Pick<
   UseRoiCalculator,
-  'empresa' | 'enfermedades' | 'setEmpresaCampo' | 'setEnfermedadCampo'
+  | 'empresa'
+  | 'enfermedades'
+  | 'resultado'
+  | 'setEmpresaCampo'
+  | 'setEnfermedadCampo'
+  | 'setSedeCampo'
+  | 'agregarSede'
+  | 'quitarSede'
 >;
 
 export function InputPanel({
   empresa,
   enfermedades,
+  resultado,
   setEmpresaCampo,
   setEnfermedadCampo,
+  setSedeCampo,
+  agregarSede,
+  quitarSede,
 }: InputPanelProps) {
   return (
     <section className="no-print order-2 rounded-2xl border border-slate-100 bg-white p-5 shadow-xl sm:p-6 lg:order-1 lg:col-span-4">
@@ -150,7 +162,8 @@ export function InputPanel({
       <p className="mb-4 text-xs text-slate-400">
         Enfermeras, insumos y recolección de RPBI. Normalmente Leucotec los
         absorbe y no aparecen en la cotización; enciéndelo sólo si a este
-        cliente se le cobran aparte.
+        cliente se le cobran aparte. Se pueden cotizar hasta cuatro sedes, aun
+        si operan al mismo tiempo.
       </p>
 
       <div
@@ -188,68 +201,23 @@ export function InputPanel({
           </span>
         </button>
 
-        <div className="mt-3 space-y-3">
-            <button
-              type="button"
-              onClick={() => setEmpresaCampo('sedeForanea', !empresa.sedeForanea)}
-              className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left"
-            >
-              <span className="text-xs font-semibold text-slate-600">Sede</span>
-              <span className="text-sm font-bold text-brand-primary">
-                {empresa.sedeForanea ? 'Foránea' : 'Local'}
-              </span>
-            </button>
+        <div className="mt-3">
+          <SedesCampana
+            sedes={empresa.sedes}
+            logistica={resultado.logistica}
+            setSedeCampo={setSedeCampo}
+            agregarSede={agregarSede}
+            quitarSede={quitarSede}
+          />
 
-            {!empresa.sedeForanea && (
-              <button
-                type="button"
-                onClick={() => setEmpresaCampo('jornadaLarga', !empresa.jornadaLarga)}
-                className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left"
-              >
-                <span className="text-xs font-semibold text-slate-600">
-                  Horas por jornada
-                </span>
-                <span className="text-sm font-bold text-brand-primary">
-                  {empresa.jornadaLarga ? 'Más de 4' : '1 a 4'}
-                </span>
-              </button>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field
-                type="number"
-                label="Jornadas"
-                suffix="días"
-                min={1}
-                value={empresa.diasVacunacion}
-                onChange={(v) => setEmpresaCampo('diasVacunacion', v)}
-              />
-              <Field
-                type="number"
-                label="Enfermeras/día"
-                min={1}
-                value={empresa.enfermerasPorDia}
-                onChange={(v) => setEmpresaCampo('enfermerasPorDia', v)}
-              />
-            </div>
-
-            <Field
-              type="number"
-              label="Transporte y alimentación"
-              prefix="$"
-              min={0}
-              hint="Camión, taxi o vuelo del equipo, más comidas si aplican"
-              value={empresa.viaticos}
-              onChange={(v) => setEmpresaCampo('viaticos', v)}
-            />
-
-            <p className="text-[10px] leading-snug text-slate-400">
-              Estos datos se capturan siempre: aunque no se le cobren al
-              cliente, son costo real de la campaña y cuentan para el margen.
-              Los insumos salen a $18.07 por dosis, monto que ya incluye los
-              botes y el servicio de RPBI. Referencia de comidas: $120
-              desayuno, $150 comida, $130 cena.
-            </p>
+          <p className="mt-3 text-[10px] leading-snug text-slate-400">
+            Estos datos se capturan siempre: aunque no se le cobren al cliente,
+            son costo real de la campaña y cuentan para el margen. Los insumos
+            salen a $18.07 por dosis, monto que ya incluye los botes y el
+            servicio de RPBI. La prueba COVID del equipo ($335) se paga una vez
+            por sede. Referencia de comidas: $120 desayuno, $150 comida, $130
+            cena.
+          </p>
         </div>
       </div>
 

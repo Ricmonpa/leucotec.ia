@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import {
   calcularSimulacion,
+  sedeNueva,
   type ParametrosEmpresa,
   type ParametrosEnfermedad,
   type ResultadoSimulacion,
+  type Sede,
 } from '../lib/calculations';
 import { aplicarCotizacion, leerCotizacionDeUrl } from '../lib/enlaceCotizacion';
 
@@ -20,11 +22,20 @@ const EMPRESA_INICIAL: ParametrosEmpresa = {
   tasaISR: 0.3, // ISR corporativo en México
   // Leucotec cotiza sólo el biológico; la operación sale de su margen.
   cobrarLogistica: false,
-  sedeForanea: false,
-  jornadaLarga: true, // más de 4 horas: tarifa de enfermera $800
-  diasVacunacion: 3,
-  enfermerasPorDia: 2,
-  viaticos: 0, // se captura por campaña: varía con la sede y el traslado
+  // Una sola sede de arranque: es el caso normal. Se agregan más con un clic,
+  // hasta cuatro, igual que en su cotizador.
+  sedes: [
+    {
+      destino: 'CDMX',
+      dosis: 0, // 0 = toma todas las dosis de la campaña
+      foranea: false,
+      jornadaLarga: true, // más de 4 horas: tarifa de enfermera $800
+      enfermerasPorDia: 2,
+      diasVacunacion: 3,
+      transporte: 0, // varía con el traslado: se captura por campaña
+      comidas: 0,
+    },
+  ],
 };
 
 /**
@@ -247,8 +258,21 @@ export interface UseRoiCalculator {
     campo: K,
     valor: ParametrosEnfermedad[K],
   ) => void;
+  /** Edita un campo de una sede de la campaña. */
+  setSedeCampo: <K extends keyof Sede>(
+    index: number,
+    campo: K,
+    valor: Sede[K],
+  ) => void;
+  /** Agrega una sede. Su cotizador admite hasta cuatro. */
+  agregarSede: () => void;
+  /** Quita una sede. Siempre queda al menos una. */
+  quitarSede: (index: number) => void;
   reset: () => void;
 }
+
+/** Tope de sedes por campaña, el mismo que su Excel. */
+export const MAX_SEDES = 4;
 
 /**
  * Hook central: mantiene los parámetros de la empresa y de cada enfermedad,
@@ -280,6 +304,29 @@ export function useRoiCalculator(): UseRoiCalculator {
     );
   };
 
+  const setSedeCampo: UseRoiCalculator['setSedeCampo'] = (index, campo, valor) => {
+    setEmpresa((prev) => ({
+      ...prev,
+      sedes: prev.sedes.map((s, i) => (i === index ? { ...s, [campo]: valor } : s)),
+    }));
+  };
+
+  const agregarSede = () => {
+    setEmpresa((prev) =>
+      prev.sedes.length >= MAX_SEDES
+        ? prev
+        : { ...prev, sedes: [...prev.sedes, sedeNueva()] },
+    );
+  };
+
+  const quitarSede = (index: number) => {
+    setEmpresa((prev) =>
+      prev.sedes.length <= 1
+        ? prev
+        : { ...prev, sedes: prev.sedes.filter((_, i) => i !== index) },
+    );
+  };
+
   // Restablecer devuelve a la cotización que llegó por enlace, si hubo una;
   // si no, a los valores de demostración.
   const reset = () => {
@@ -294,6 +341,9 @@ export function useRoiCalculator(): UseRoiCalculator {
     desdeCotizacion: inicial.desdeCotizacion,
     setEmpresaCampo,
     setEnfermedadCampo,
+    setSedeCampo,
+    agregarSede,
+    quitarSede,
     reset,
   };
 }

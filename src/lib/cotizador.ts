@@ -91,6 +91,18 @@ export async function enviarCotizacion(
           dosis: resultado.logistica.dosisTotales,
           total: Math.round(resultado.logistica.total),
           cobradaAlCliente: empresa.cobrarLogistica,
+          // Una línea por sede: la campaña puede correr en varias plantas a
+          // la vez y el margen se revisa sede por sede.
+          sedes: resultado.logistica.sedes.map((s) => ({
+            destino: s.destino,
+            dosis: s.dosis,
+            foranea: s.foranea,
+            turnos: s.turnos,
+            enfermeras: Math.round(s.enfermeras),
+            viaticos: Math.round(s.viaticos),
+            insumos: Math.round(s.insumos),
+            total: Math.round(s.total),
+          })),
         },
       }),
     });

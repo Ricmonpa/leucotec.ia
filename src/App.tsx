@@ -7,6 +7,7 @@ import {
 } from './lib/cotizador';
 import { AnalysisSequence } from './components/AnalysisSequence';
 import { Header } from './components/Header';
+import { CotizacionDetallada } from './components/CotizacionDetallada';
 import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
 import { RiskChart } from './components/RiskChart';
@@ -45,6 +46,9 @@ function Simulator() {
     resultado,
     setEmpresaCampo,
     setEnfermedadCampo,
+    setSedeCampo,
+    agregarSede,
+    quitarSede,
     reset,
     desdeCotizacion,
   } = useRoiCalculator();
@@ -112,8 +116,12 @@ function Simulator() {
           <InputPanel
             empresa={empresa}
             enfermedades={enfermedades}
+            resultado={resultado}
             setEmpresaCampo={setEmpresaCampo}
             setEnfermedadCampo={setEnfermedadCampo}
+            setSedeCampo={setSedeCampo}
+            agregarSede={agregarSede}
+            quitarSede={quitarSede}
           />
 
           <section className="order-1 space-y-6 lg:order-2 lg:col-span-8">
@@ -123,6 +131,14 @@ function Simulator() {
             <ReferenciaEdades />
           </section>
         </main>
+
+        {/* El PDF cierra con la cotizacion formal: primero se argumenta el
+            retorno, al final se entrega el documento que el cliente firma. */}
+        <CotizacionDetallada
+          empresa={empresa}
+          enfermedades={enfermedades}
+          resultado={resultado}
+        />
       </div>
     </div>
   );

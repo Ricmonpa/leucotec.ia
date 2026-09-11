@@ -12,12 +12,20 @@
 // Formato:
 //   ?empresa=Grupo+Bimbo&emp=400&dia=1300
 //   &v=Vaxigrip Tetra:400:440,Prevenar 20:400:1800
-//   &log=0&dias=3&enf=2&via=0&sede=local&hrs=mas4
-//   (log=1 sólo si se le cobra; hrs=1a4 baja la tarifa de enfermera)
+//   &log=0
+//   &sedes=CDMX:400:local:mas4:2:3:1500:0|Toluca:120:foranea:mas4:1:2:3000:450
+//
+// Cada sede va como destino:dosis:local|foranea:1a4|mas4:enfermeras:dias:
+// transporte:comidas. Su cotizador admite hasta cuatro y pueden operar al
+// mismo tiempo, así que los días NO se suman entre sedes.
+//
+// (log=1 sólo si la logística se le cobra al cliente; hrs=1a4 baja la tarifa
+// de enfermera. Los enlaces con el formato viejo de una sola sede
+// —dias, enf, via, sede, hrs— se siguen leyendo.)
 // ---------------------------------------------------------------------------
 
 import { PRODUCTOS_POR_ENFERMEDAD } from './catalogoProductos';
-import type { ParametrosEmpresa, ParametrosEnfermedad } from './calculations';
+import type { ParametrosEmpresa, ParametrosEnfermedad, Sede } from './calculations';
 
 /** Producto comercial → enfermedad a la que pertenece. */
 const ENFERMEDAD_DE_PRODUCTO: Record<string, string> = (() => {
@@ -41,6 +49,57 @@ function num(v: string | null): number | undefined {
 }
 
 /**
+ * Lee las sedes de la campaña.
+ *
+ * Formato nuevo, una sede por bloque separado con "|":
+ *   sedes=destino:dosis:local|foranea:1a4|mas4:enfermeras:dias:transporte:comidas
+ *
+ * Si el enlace viene del formato anterior —una sola sede— se arma con eso,
+ * para que los enlaces que ya se mandaron a algún cliente sigan abriendo.
+ */
+function leerSedes(p: URLSearchParams): Sede[] {
+  const crudo = p.get('sedes');
+  if (crudo) {
+    const sedes = crudo
+      .split('|')
+      .map((bloque) => {
+        const c = bloque.split(':');
+        if (c.length < 8) return null;
+        return {
+          destino: decodeURIComponent(c[0] ?? ''),
+          dosis: Number(c[1]) || 0,
+          foranea: c[2] === 'foranea',
+          jornadaLarga: c[3] !== '1a4',
+          enfermerasPorDia: Number(c[4]) || 0,
+          diasVacunacion: Number(c[5]) || 0,
+          transporte: Number(c[6]) || 0,
+          comidas: Number(c[7]) || 0,
+        };
+      })
+      .filter((s): s is Sede => s !== null);
+    if (sedes.length) return sedes;
+  }
+
+  // Formato anterior: una sola sede repartida en parámetros sueltos.
+  const viejos = ['sede', 'hrs', 'dias', 'enf', 'via'];
+  if (!viejos.some((k) => p.has(k))) return [];
+
+  return [
+    {
+      destino: '',
+      dosis: 0,
+      foranea: p.get('sede') === 'foranea',
+      jornadaLarga: p.get('hrs') !== '1a4',
+      enfermerasPorDia: num(p.get('enf')) ?? 1,
+      diasVacunacion: num(p.get('dias')) ?? 1,
+      // El formato viejo mandaba transporte y comidas ya sumados.
+      transporte: num(p.get('via')) ?? 0,
+      comidas: 0,
+    },
+  ];
+}
+
+/**
  * Lee la cotización que venga en la URL. Devuelve null si no hay ninguna,
  * que es el caso normal cuando alguien entra directo al simulador.
  */
@@ -61,17 +120,9 @@ export function leerCotizacionDeUrl(
   if (costoDia !== undefined) empresa.costoDiaEmpleado = costoDia;
 
   if (p.has('log')) empresa.cobrarLogistica = p.get('log') === '1';
-  if (p.has('sede')) empresa.sedeForanea = p.get('sede') === 'foranea';
-  if (p.has('hrs')) empresa.jornadaLarga = p.get('hrs') !== '1a4';
 
-  const dias = num(p.get('dias'));
-  if (dias !== undefined) empresa.diasVacunacion = dias;
-
-  const enfermeras = num(p.get('enf'));
-  if (enfermeras !== undefined) empresa.enfermerasPorDia = enfermeras;
-
-  const viaticos = num(p.get('via'));
-  if (viaticos !== undefined) empresa.viaticos = viaticos;
+  const sedes = leerSedes(p);
+  if (sedes.length) empresa.sedes = sedes;
 
   const vacunas: CotizacionRecibida['vacunas'] = [];
   for (const parte of (p.get('v') ?? '').split(',')) {
