@@ -19,8 +19,13 @@
 //   Verde claro  -> el ejecutivo ESCRIBE el valor
 //   Gris         -> se calcula solo, no se toca
 //
-// Las columnas D:F llevan el costo de compra y van OCULTAS, igual que en su
-// Excel ("Datos ocultos").
+// EL CANDADO DE MARTIN, replicado en sus tres capas:
+//   1. Las columnas D:F llevan el costo de compra y van OCULTAS, igual que en
+//      su Excel, donde literalmente dicen "Datos ocultos".
+//   2. Las hojas Costos, Catalogo e Insumos van ocultas: sus vendedores no
+//      deben ver los costos de compra.
+//   3. La hoja Cotizar va protegida, asi que las formulas no se pisan por
+//      accidente. Solo quedan libres las celdas verdes.
 //
 // OJO: la hoja está en es-ES. Las fórmulas separan argumentos con PUNTO Y
 // COMA. Con coma devuelven #ERROR!.
@@ -64,40 +69,43 @@ function ENLACEROI(dosis, precio, logistica, cliente, empleados, costoDia) {
   if (!partes.length) return 'Elige al menos una vacuna con dosis.';
 
   var empresa = String(h.getRange('B1').getValue() || '').trim();
-  var emp = Number(h.getRange('B2').getValue()) || 0;
-  var dia = Number(h.getRange('B3').getValue()) || 0;
-  if (!emp) emp = Number(h.getRange('C13').getValue()) || 0;
+  var empleados = Number(h.getRange('B2').getValue()) || 0;
+  var costoDia = Number(h.getRange('B3').getValue()) || 0;
+  if (!empleados) empleados = Number(h.getRange('C13').getValue()) || 0;
 
-  // Logistica: la tarifa sale de la PRIMERA sede; las jornadas y los viaticos
-  // se suman de las cuatro. El simulador todavia maneja una sola sede.
-  var sede = String(h.getRange('G22').getValue() || '').toUpperCase();
-  var horas = String(h.getRange('J22').getValue() || '');
-  var enfermeras = Number(h.getRange('H30').getValue()) || 0;
-
-  var dias = 0;
-  var colDias = h.getRange('I30:I33').getValues();
-  for (var x = 0; x < colDias.length; x++) dias += Number(colDias[x][0]) || 0;
-
-  // Transporte + comidas. La prueba COVID no se suma aqui: el simulador ya la
-  // agrega por su cuenta y se contaria dos veces.
-  var viaticos = 0;
-  var tr = h.getRange('G38:G41').getValues();
-  var co = h.getRange('I38:I41').getValues();
-  for (var y = 0; y < tr.length; y++) {
-    viaticos += (Number(tr[y][0]) || 0) + (Number(co[y][0]) || 0);
+  // Cada sede viaja completa. Su cotizador admite cuatro y pueden operar al
+  // mismo tiempo, asi que los dias NO se suman entre ellas: cada sede lleva su
+  // propio equipo y el simulador las calcula por separado.
+  var filasSede = h.getRange('G22:J25').getValues(); // sede, dosis, destino, horas
+  var filasEnf = h.getRange('H30:I33').getValues();  // enfermeras por dia, dias
+  var filasVia = h.getRange('G38:I41').getValues();  // transporte, covid, comidas
+  var bloques = [];
+  for (var s = 0; s < 4; s++) {
+    var tipo = String(filasSede[s][0] || '').toUpperCase();
+    if (!tipo || tipo === 'NINGUNA') continue;
+    var horas = String(filasSede[s][3] || '');
+    // Los dos puntos y la barra separan los campos: si el destino los trae,
+    // el enlace se parte en pedazos equivocados.
+    var destino = String(filasSede[s][2] || '').trim().replace(/[:|]/g, ' ');
+    bloques.push([
+      destino,
+      Number(filasSede[s][1]) || 0,
+      tipo === 'FORANEO' ? 'foranea' : 'local',
+      horas === '1 a 4' ? '1a4' : 'mas4',
+      Number(filasEnf[s][0]) || 0,
+      Number(filasEnf[s][1]) || 0,
+      Number(filasVia[s][0]) || 0,
+      Number(filasVia[s][2]) || 0
+    ].join(':'));
   }
 
   var q = [
     'empresa=' + encodeURIComponent(empresa),
-    'emp=' + emp,
-    'dia=' + dia,
+    'emp=' + empleados,
+    'dia=' + costoDia,
     'v=' + encodeURIComponent(partes.join(',')),
     'log=0',
-    'dias=' + dias,
-    'enf=' + enfermeras,
-    'via=' + viaticos,
-    'sede=' + (sede === 'FORANEO' ? 'foranea' : 'local'),
-    'hrs=' + (horas === '1 a 4' ? '1a4' : 'mas4')
+    'sedes=' + encodeURIComponent(bloques.join('|'))
   ];
   return URL_SIMULADOR + '?' + q.join('&');
 }
@@ -283,7 +291,61 @@ function crearCotizar(libro) {
   h.setColumnWidth(12, 130);
   h.setColumnWidth(14, 130);
   h.hideColumns(4, 3);
+  protegerCotizar(h);
+  ocultarInternas(libro);
   SpreadsheetApp.flush();
+}
+
+// ---------------------------------------------------------------------------
+// El candado de Martin.
+//
+// En su Excel el vendedor NO puede tocar nada fuera de las celdas verdes: la
+// hoja esta protegida y las formulas bloqueadas. Aqui se hace lo mismo.
+//
+// Se deja como aviso y no como bloqueo duro: un bloqueo duro obliga a nombrar
+// uno por uno quien si puede editar, y si eso se configura mal deja fuera a
+// todo el equipo. El aviso ya evita el accidente, que es el problema real.
+// ---------------------------------------------------------------------------
+function protegerCotizar(h) {
+  // Si se reconstruye la hoja sin borrarla, las protecciones viejas se apilan.
+  var previas = h.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+  for (var i = 0; i < previas.length; i++) previas[i].remove();
+
+  var prot = h.protect().setDescription(
+    'Solo se editan las celdas verdes. Lo demas se calcula solo.'
+  );
+  prot.setUnprotectedRanges([
+    h.getRange('B1:B3'),   // cliente, empleados, costo dia
+    h.getRange('G3'),      // recargo por tarjeta
+    h.getRange('I2'),      // margen objetivo
+    h.getRange('B5:C12'),  // vacuna y dosis
+    h.getRange('G5:G12'),  // precio unitario
+    h.getRange('G22:J25'), // sede, dosis, destino y horas
+    h.getRange('H30:I33'), // enfermeras por dia y jornadas
+    h.getRange('G38:G41'), // transporte
+    h.getRange('I38:I41')  // comidas
+  ]);
+  prot.setWarningOnly(true);
+}
+
+/**
+ * Esconde las hojas internas.
+ *
+ * OJO: en Sheets esconder una hoja NO es un candado. Cualquiera con permiso
+ * de edicion puede volver a mostrarla desde Ver > Hojas ocultas. En el Excel
+ * de Martin si es un candado porque la estructura del libro lleva contrasena
+ * (SHA-512), y Sheets no tiene ese equivalente.
+ *
+ * Para esconder de verdad los costos de compra de los vendedores hay que
+ * moverlos a OTRO archivo que ellos no puedan abrir y traerlos con
+ * IMPORTRANGE. Mientras eso no pase, esto evita el descuido, no al curioso.
+ */
+function ocultarInternas(libro) {
+  var internas = ['Costos', 'Catalogo', 'Insumos'];
+  for (var i = 0; i < internas.length; i++) {
+    var h = libro.getSheetByName(internas[i]);
+    if (h) h.hideSheet();
+  }
 }
 
 /** Desplegables: exactamente los campos verde fuerte. */
