@@ -26,5 +26,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# Material comercial del cliente — no debe subirse al repo
+# Material comercial y operativo del cliente — NO debe subirse al repo.
+# Este repositorio es publico. El cotizador de Leucotec trae su lista completa
+# de costos de compra; una hoja de calculo subida aqui la deja a la vista de
+# cualquiera. Lo mismo con las cotizaciones que mandamos nosotros.
 *.pdf
+*.xlsx
+*.xlsm
+*.xlsb
+*.xls
+*.docx
+*.doc

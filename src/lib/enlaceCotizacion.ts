@@ -66,7 +66,9 @@ function leerSedes(p: URLSearchParams): Sede[] {
         const c = bloque.split(':');
         if (c.length < 8) return null;
         return {
-          destino: decodeURIComponent(c[0] ?? ''),
+          // URLSearchParams ya decodificó el parámetro completo: volver a
+          // decodificar aquí truena con cualquier destino que traiga un "%".
+          destino: (c[0] ?? '').trim(),
           dosis: Number(c[1]) || 0,
           foranea: c[2] === 'foranea',
           jornadaLarga: c[3] !== '1a4',
