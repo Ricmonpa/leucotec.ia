@@ -173,11 +173,24 @@ export function SedesCampana({
         </button>
       )}
 
-      {/* Si las dosis declaradas no llegan al total, alguien se queda sin vacuna. */}
-      {logistica.dosisAsignadas < logistica.dosisTotales && (
+      {/* El reparto tiene que cuadrar con la campaña. Si falta, alguien se
+          queda sin vacuna; si sobra, se está cobrando logística de dosis que
+          no existen. Las dos descuadran el margen. */}
+      {logistica.dosisAsignadas !== logistica.dosisTotales && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-700">
-          Faltan {logistica.dosisTotales - logistica.dosisAsignadas} dosis por
-          asignar a una sede. Deja una sede en 0 para que las absorba.
+          {logistica.dosisAsignadas < logistica.dosisTotales ? (
+            <>
+              Faltan {logistica.dosisTotales - logistica.dosisAsignadas} dosis
+              por asignar. Deja una sede en 0 para que las absorba.
+            </>
+          ) : (
+            <>
+              Las sedes suman {logistica.dosisAsignadas} dosis y la campaña son{' '}
+              {logistica.dosisTotales}. Sobran{' '}
+              {logistica.dosisAsignadas - logistica.dosisTotales}: revisa el
+              reparto o el costo se infla.
+            </>
+          )}
         </p>
       )}
     </div>
