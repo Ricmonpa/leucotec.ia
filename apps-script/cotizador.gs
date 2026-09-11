@@ -291,7 +291,8 @@ function crearCotizar(libro) {
   h.setColumnWidth(12, 130);
   h.setColumnWidth(14, 130);
   h.hideColumns(4, 3);
-  protegerCotizar(h);
+  prepararConfig(libro);
+  protegerCotizar(libro, h);
   ocultarInternas(libro);
   SpreadsheetApp.flush();
 }
@@ -299,22 +300,93 @@ function crearCotizar(libro) {
 // ---------------------------------------------------------------------------
 // El candado de Martin.
 //
-// En su Excel el vendedor NO puede tocar nada fuera de las celdas verdes: la
-// hoja esta protegida y las formulas bloqueadas. Aqui se hace lo mismo.
+// En su Excel el libro lleva contraseña. Sheets no tiene contraseñas: usa
+// IDENTIDAD. En vez de un secreto que se comparte y se filtra, se nombra por
+// correo a quien sí puede editar lo bloqueado. Para Martin es mejor: no tiene
+// que acordarse de nada, y si un vendedor se va, se le quita el acceso sin
+// cambiarle la clave a todo el mundo.
 //
-// Se deja como aviso y no como bloqueo duro: un bloqueo duro obliga a nombrar
-// uno por uno quien si puede editar, y si eso se configura mal deja fuera a
-// todo el equipo. El aviso ya evita el accidente, que es el problema real.
+// Los correos se capturan en la hoja Config. Si no hay ninguno, el candado se
+// queda en modo aviso a propósito: un bloqueo duro mal configurado dejaría
+// fuera al equipo entero, incluido Martin.
 // ---------------------------------------------------------------------------
-function protegerCotizar(h) {
-  // Si se reconstruye la hoja sin borrarla, las protecciones viejas se apilan.
+
+/** Renglón de Config donde se capturan los correos con permiso. */
+var ETIQUETA_CORREOS = 'Correos que pueden editar lo bloqueado';
+
+/** Se asegura de que Config tenga el renglón de correos. */
+function prepararConfig(libro) {
+  var c = libro.getSheetByName('Config');
+  if (!c) return;
+  var valores = c.getRange(1, 1, Math.max(1, c.getLastRow()), 1).getValues();
+  for (var i = 0; i < valores.length; i++) {
+    if (String(valores[i][0]).trim() === ETIQUETA_CORREOS) return;
+  }
+  var f = c.getLastRow() + 1;
+  c.getRange(f, 1, 1, 3).setValues([[
+    ETIQUETA_CORREOS, '',
+    'Separados por coma. Solo ellos pueden tocar las formulas y las celdas ' +
+    'grises. Despues de cambiarlos, corre Leucotec > Aplicar candado.'
+  ]]);
+  c.getRange(f, 2).setBackground('#D9EAD3');
+}
+
+/** Lee de Config los correos con permiso para editar lo bloqueado. */
+function correosAutorizados(libro) {
+  var c = libro.getSheetByName('Config');
+  if (!c) return [];
+  var valores = c.getRange(1, 1, Math.max(1, c.getLastRow()), 2).getValues();
+  var crudo = '';
+  for (var i = 0; i < valores.length; i++) {
+    if (String(valores[i][0]).trim() === ETIQUETA_CORREOS) crudo = String(valores[i][1] || '');
+  }
+  var lista = [];
+  var partes = crudo.split(/[,;\s]+/);
+  for (var j = 0; j < partes.length; j++) {
+    var correo = partes[j].trim();
+    if (correo.indexOf('@') > 0) lista.push(correo);
+  }
+  return lista;
+}
+
+/**
+ * Deja una hoja bloqueada para todos menos para los correos autorizados.
+ *
+ * La protección nace heredando a TODOS los editores del archivo, así que hay
+ * que sacarlos uno por uno. Al dueño del archivo no se le puede quitar: eso es
+ * de Google y no tiene vuelta.
+ */
+function candar(h, correos, libres, descripcion) {
   var previas = h.getProtections(SpreadsheetApp.ProtectionType.SHEET);
   for (var i = 0; i < previas.length; i++) previas[i].remove();
 
-  var prot = h.protect().setDescription(
-    'Solo se editan las celdas verdes. Lo demas se calcula solo.'
-  );
-  prot.setUnprotectedRanges([
+  var prot = h.protect().setDescription(descripcion);
+  if (libres && libres.length) prot.setUnprotectedRanges(libres);
+
+  if (!correos.length) {
+    // Sin nadie configurado, un bloqueo duro dejaría fuera al equipo entero.
+    prot.setWarningOnly(true);
+    return;
+  }
+
+  prot.addEditors(correos);
+  var actuales = prot.getEditors();
+  for (var j = 0; j < actuales.length; j++) {
+    var correo = actuales[j].getEmail();
+    if (correos.indexOf(correo) === -1) {
+      try {
+        prot.removeEditor(correo);
+      } catch (e) {
+        // Es el dueño del archivo: Google no permite quitarlo.
+      }
+    }
+  }
+  if (prot.canDomainEdit()) prot.setDomainEdit(false);
+}
+
+function protegerCotizar(libro, h) {
+  var correos = correosAutorizados(libro);
+  candar(h, correos, [
     h.getRange('B1:B3'),   // cliente, empleados, costo dia
     h.getRange('G3'),      // recargo por tarjeta
     h.getRange('I2'),      // margen objetivo
@@ -324,21 +396,26 @@ function protegerCotizar(h) {
     h.getRange('H30:I33'), // enfermeras por dia y jornadas
     h.getRange('G38:G41'), // transporte
     h.getRange('I38:I41')  // comidas
-  ]);
-  prot.setWarningOnly(true);
+  ], 'Solo se editan las celdas verdes. Lo demas se calcula solo.');
+
+  // Config manda sobre el candado: si un vendedor pudiera escribir ahí, se
+  // agregaría su propio correo y abriría la hoja entera.
+  var c = libro.getSheetByName('Config');
+  if (c) candar(c, correos, null, 'Configuracion del cotizador.');
 }
 
 /**
  * Esconde las hojas internas.
  *
- * OJO: en Sheets esconder una hoja NO es un candado. Cualquiera con permiso
- * de edicion puede volver a mostrarla desde Ver > Hojas ocultas. En el Excel
- * de Martin si es un candado porque la estructura del libro lleva contrasena
- * (SHA-512), y Sheets no tiene ese equivalente.
+ * OJO, y esto importa: esconder y proteger NO esconden los VALORES. La
+ * protección impide escribir, no leer, y cualquier editor puede volver a
+ * mostrar una hoja desde Ver > Hojas ocultas. Sheets no tiene el equivalente
+ * a la contraseña de estructura del Excel de Martin.
  *
- * Para esconder de verdad los costos de compra de los vendedores hay que
- * moverlos a OTRO archivo que ellos no puedan abrir y traerlos con
- * IMPORTRANGE. Mientras eso no pase, esto evita el descuido, no al curioso.
+ * Para que los vendedores no vean los costos de compra hay que moverlos a
+ * OTRO archivo que ellos no puedan abrir y traerlos con IMPORTRANGE. Ahí el
+ * permiso de Google sí hace de contraseña. Mientras eso no pase, esto evita
+ * el descuido, no al curioso.
  */
 function ocultarInternas(libro) {
   var internas = ['Costos', 'Catalogo', 'Insumos'];
@@ -346,6 +423,22 @@ function ocultarInternas(libro) {
     var h = libro.getSheetByName(internas[i]);
     if (h) h.hideSheet();
   }
+}
+
+/** Vuelve a aplicar el candado con los correos que estén hoy en Config. */
+function aplicarCandado() {
+  var libro = SpreadsheetApp.getActiveSpreadsheet();
+  prepararConfig(libro);
+  var h = libro.getSheetByName('Cotizar');
+  if (h) protegerCotizar(libro, h);
+  ocultarInternas(libro);
+  var correos = correosAutorizados(libro);
+  libro.toast(
+    correos.length
+      ? 'Candado puesto. Pueden editar: ' + correos.join(', ')
+      : 'Sin correos en Config: el candado quedo solo como aviso.',
+    'Leucotec', 8
+  );
 }
 
 /** Desplegables: exactamente los campos verde fuerte. */
@@ -434,6 +527,7 @@ function reconstruirCotizador() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Leucotec')
     .addItem('Rehacer cotizador', 'reconstruirCotizador')
+    .addItem('Aplicar candado', 'aplicarCandado')
     .addSeparator()
     .addItem('Instalar todo (borra el historico)', 'instalar')
     .addToUi();
