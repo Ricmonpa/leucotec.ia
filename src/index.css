@@ -42,16 +42,24 @@
   }
   /* Sin esto el navegador imprime los fondos en blanco y la cotizacion
      pierde los encabezados y el renglon del total. */
-  .solo-print,
-  .solo-print * {
+  .cotizacion-doc,
+  .cotizacion-doc * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  /* Una tabla partida a la mitad entre dos hojas se lee pesimo. */
-  .solo-print table,
-  .solo-print tr {
+  /* Un renglon partido a la mitad entre dos hojas se lee pesimo. Se protege
+     el renglon, no la tabla completa: una tabla larga si puede continuar en
+     la hoja siguiente. */
+  .cotizacion-doc tr {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+  .cotizacion-doc thead {
+    display: table-header-group;
+  }
+  /* En la pagina de la cotizacion no hay nada que saltar: arranca en la hoja 1. */
+  .pagina-cotizacion .cotizacion-doc {
+    max-width: none;
   }
   @page {
     margin: 14mm;

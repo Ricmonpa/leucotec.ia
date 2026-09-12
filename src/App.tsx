@@ -8,6 +8,8 @@ import {
 import { AnalysisSequence } from './components/AnalysisSequence';
 import { Header } from './components/Header';
 import { CotizacionDetallada } from './components/CotizacionDetallada';
+import { PaginaCotizacion } from './components/PaginaCotizacion';
+import { cotizacionDesdeSimulador } from './lib/cotizacionImprimible';
 import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
 import { RiskChart } from './components/RiskChart';
@@ -22,7 +24,15 @@ import {
 } from './lib/lead';
 import { useRoiCalculator } from './hooks/useRoiCalculator';
 
+/** La cotización impresa es herramienta interna: no pasa por el registro. */
+const esPaginaCotizacion = () => window.location.pathname.replace(/\/+$/, '') === '/cotizacion';
+
 function App() {
+  if (esPaginaCotizacion()) return <PaginaCotizacion />;
+  return <EntradaSimulador />;
+}
+
+function EntradaSimulador() {
   const [lead, setLead] = useState<Lead | null>(leerLead);
 
   // Quien ya se registró en este equipo entra directo, pero avisamos una vez
@@ -134,11 +144,11 @@ function Simulator() {
 
         {/* El PDF cierra con la cotizacion formal: primero se argumenta el
             retorno, al final se entrega el documento que el cliente firma. */}
-        <CotizacionDetallada
-          empresa={empresa}
-          enfermedades={enfermedades}
-          resultado={resultado}
-        />
+        <div className="solo-print">
+          <CotizacionDetallada
+            cotizacion={cotizacionDesdeSimulador(empresa, enfermedades, resultado)}
+          />
+        </div>
       </div>
     </div>
   );

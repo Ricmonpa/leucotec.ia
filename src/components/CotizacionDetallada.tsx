@@ -1,227 +1,235 @@
 // ---------------------------------------------------------------------------
 // Cotización formal de la campaña.
 //
-// Es lo que sale al exportar el PDF, después del análisis de ROI: primero se
-// argumenta el retorno y al final se entrega el documento que el cliente firma.
+// Es el producto final de todo el proceso de cotizar: lo que el vendedor le
+// entrega al cliente. Se llega desde el Sheet de Martin o desde el dashboard,
+// pero el documento es uno solo.
 //
-// La idea, tal como la pidió Martín, es que se vea TODO lo que se entrega:
-// cuántas enfermeras, cuántas jornadas, cuántas torundas, el traslado, el
-// manejo de RPBI. Que la lista misma demuestre el trabajo que hay detrás.
+// Tal como lo pidió Martin, aquí se ve TODO lo que se entrega: cuántas
+// enfermeras por cuántas jornadas, el traslado, cada insumo con su cantidad,
+// el manejo de RPBI. Cada renglón suma a la propuesta de valor.
 //
-// Sobre los precios: se enumera todo siempre, pero sólo lleva importe lo que
-// de verdad se le factura al cliente. Cuando Leucotec absorbe la operación
-// —que es lo normal— esas líneas dicen "Incluido". Así el cliente ve el
-// alcance completo sin que se le expongan los costos internos de Leucotec.
+// Sobre los importes: se enumera todo siempre, pero sólo lleva precio lo que
+// de verdad se factura. Cuando Leucotec absorbe la operación —lo normal—
+// esas líneas dicen "Incluido": el cliente ve el alcance completo sin que se
+// expongan los costos internos.
+//
+// Todo lo que aparece aquí sale del cotizador de Martin. No se agregan
+// servicios que Leucotec no haya confirmado: es un documento que el cliente
+// firma.
 // ---------------------------------------------------------------------------
 
-import { formatCurrency, formatNumber } from '../lib/calculations';
-import type {
-  ParametrosEmpresa,
-  ParametrosEnfermedad,
-  ResultadoSimulacion,
-} from '../lib/calculations';
+import { formatNumber } from '../lib/calculations';
 import {
-  INSUMOS_APLICACION,
-  MANEJO_RPBI,
-  cantidadInsumo,
-  unidadDe,
-} from '../lib/insumosCatalogo';
+  resumirCotizacion,
+  type CotizacionImprimible,
+} from '../lib/cotizacionImprimible';
+import { INSUMOS_APLICACION, MANEJO_RPBI, cantidadInsumo, unidadDe } from '../lib/insumosCatalogo';
 
 interface CotizacionDetalladaProps {
-  empresa: ParametrosEmpresa;
-  enfermedades: ParametrosEnfermedad[];
-  resultado: ResultadoSimulacion;
-  /** Folio de la cotización. Si no viene, se arma con la fecha. */
-  folio?: string;
+  cotizacion: CotizacionImprimible;
+  className?: string;
 }
 
-const hoy = () =>
-  new Date().toLocaleDateString('es-MX', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+/** En una cotización los centavos importan: siempre con dos decimales. */
+const dinero = (v: number) =>
+  new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(v);
 
-/** La cotización vence a los 30 días: es lo que aguanta un precio de biológico. */
-function vigencia(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 30);
-  return d.toLocaleDateString('es-MX', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+const fechaLarga = (d: Date) =>
+  d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+/** 30 días: es lo que aguanta un precio de biológico. */
+const DIAS_VIGENCIA = 30;
+
+const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
+
+/** Une una lista en español: "a", "a y b", "a, b y c". */
+function enLista(xs: string[]): string {
+  if (xs.length <= 1) return xs[0] ?? '';
+  return `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`;
 }
 
-function folioDeFecha(): string {
-  const d = new Date();
-  const s = [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, '0'),
-    String(d.getDate()).padStart(2, '0'),
-  ].join('');
-  return `COT-${s}`;
-}
-
-/** Encabezado de sección, con su número. */
-function Seccion({ n, titulo }: { n: number; titulo: string }) {
+function Seccion({ n, titulo, nota }: { n: number; titulo: string; nota?: string }) {
   return (
-    <h3 className="mb-2 mt-6 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-brand-dark">
-      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-[10px] text-white">
-        {n}
-      </span>
-      {titulo}
-    </h3>
+    <div className="mb-2 mt-7 flex items-baseline justify-between gap-4 border-b border-slate-200 pb-1.5">
+      <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-brand-dark">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-[10px] text-white">
+          {n}
+        </span>
+        {titulo}
+      </h3>
+      {nota && <span className="text-[9px] text-slate-400">{nota}</span>}
+    </div>
   );
 }
 
-const th = 'border-b border-slate-300 px-2 py-1.5 text-left font-bold text-slate-500';
-const td = 'border-b border-slate-100 px-2 py-1.5 align-top';
-const num = 'text-right tabular-nums';
+function Dato({ etiqueta, valor, fuerte }: { etiqueta: string; valor: string; fuerte?: boolean }) {
+  return (
+    <div
+      className={`rounded-lg px-3 py-2 ${
+        fuerte ? 'bg-brand-dark text-white' : 'border border-slate-200 bg-white'
+      }`}
+    >
+      <p className={`text-[8.5px] uppercase tracking-wide ${fuerte ? 'text-white/70' : 'text-slate-400'}`}>
+        {etiqueta}
+      </p>
+      <p className={`mt-0.5 text-[15px] font-bold tabular-nums ${fuerte ? 'text-white' : 'text-brand-dark'}`}>
+        {valor}
+      </p>
+    </div>
+  );
+}
 
-export function CotizacionDetallada({
-  empresa,
-  enfermedades,
-  resultado,
-  folio,
-}: CotizacionDetalladaProps) {
-  const cobra = empresa.cobrarLogistica;
-  const activas = enfermedades.filter((e) => e.activa);
-  const { logistica } = resultado;
+const th = 'px-2 py-1.5 text-left text-[9px] font-bold uppercase tracking-wide text-slate-400';
+const td = 'border-t border-slate-100 px-2 py-[5px] align-top';
+const der = 'text-right tabular-nums';
 
-  // Cada renglón de biológico: a cuánta gente y a qué precio.
-  const lineas = activas.map((e) => {
-    const det = resultado.detalle.find((d) => d.nombre === e.nombre);
-    const personas = det?.poblacionRiesgo ?? 0;
-    return {
-      enfermedad: e.nombre,
-      producto: e.producto,
-      personas,
-      precio: e.costoDosis,
-      importe: personas * e.costoDosis,
-      anios: e.aniosProteccion,
-    };
-  });
+export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDetalladaProps) {
+  const r = resumirCotizacion(cotizacion);
+  const cobra = cotizacion.cobrarLogistica;
+  const hoy = new Date();
+  const vence = new Date(hoy);
+  vence.setDate(vence.getDate() + DIAS_VIGENCIA);
 
-  /** Importe si se cobra; la palabra "Incluido" si Leucotec lo absorbe. */
+  const sedes = r.logistica.sedes;
+  const varias = sedes.length > 1;
+  const nombresSedes = sedes.map((s, i) => s.destino || (varias ? `Sede ${i + 1}` : 'Por definir'));
+  const productos = r.lineas.map((l) => l.producto);
+  const cliente = cotizacion.cliente || 'su empresa';
+
+  /** Importe si se cobra; "Incluido" si Leucotec lo absorbe. */
   const importe = (v: number) =>
-    cobra ? formatCurrency(v) : <span className="text-slate-400">Incluido</span>;
+    cobra ? dinero(v) : <span className="font-semibold text-brand-accent">Incluido</span>;
 
   return (
-    <section className="solo-print text-[10px] leading-snug text-slate-700">
-      {/* ---- Encabezado ---- */}
-      <div className="mb-5 flex items-start justify-between gap-6 border-b-2 border-brand-primary pb-3">
-        <div className="flex items-center gap-3">
-          <img src="/logo-leucotec.png" alt="Grupo Leucotec" className="h-10 w-auto" />
-          <div>
-            <p className="text-lg font-bold uppercase tracking-wide text-brand-dark">
-              Cotización
-            </p>
-            <p className="text-[10px] text-slate-400">
-              Campaña de vacunación corporativa
-            </p>
-          </div>
+    <article
+      className={`cotizacion-doc mx-auto max-w-[8.5in] bg-white text-[10px] leading-snug text-slate-700 ${className}`}
+    >
+      {/* ---------------- Encabezado ---------------- */}
+      <header className="flex items-start justify-between gap-6 border-b-[3px] border-brand-primary pb-4">
+        <div>
+          <img src="/logo-leucotec.png" alt="Grupo Leucotec" className="h-11 w-auto" />
+          <p className="mt-2 text-[9px] uppercase tracking-[0.18em] text-slate-400">
+            Salud preventiva corporativa
+          </p>
         </div>
-        <table className="text-[10px]">
-          <tbody>
-            <tr>
-              <td className="pr-3 text-slate-400">Folio</td>
-              <td className="font-bold">{folio ?? folioDeFecha()}</td>
-            </tr>
-            <tr>
-              <td className="pr-3 text-slate-400">Fecha</td>
-              <td>{hoy()}</td>
-            </tr>
-            <tr>
-              <td className="pr-3 text-slate-400">Vigencia</td>
-              <td>{vigencia()}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <div className="text-right">
+          <p className="text-2xl font-extrabold uppercase tracking-wide text-brand-dark">Cotización</p>
+          <p className="text-[10px] text-slate-400">Campaña de vacunación en empresa</p>
+          <table className="ml-auto mt-2 text-[10px]">
+            <tbody>
+              <tr>
+                <td className="pr-3 text-left text-slate-400">Folio</td>
+                <td className="text-right font-bold text-brand-dark">{cotizacion.folio}</td>
+              </tr>
+              <tr>
+                <td className="pr-3 text-left text-slate-400">Fecha</td>
+                <td className="text-right">{fechaLarga(hoy)}</td>
+              </tr>
+              <tr>
+                <td className="pr-3 text-left text-slate-400">Vigente hasta</td>
+                <td className="text-right">{fechaLarga(vence)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </header>
 
-      {/* ---- Cliente ---- */}
-      <div className="flex gap-8 rounded-lg bg-slate-50 px-3 py-2">
+      {/* ---------------- Cliente ---------------- */}
+      <section className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-slate-50 px-4 py-3">
         <div>
-          <p className="text-[9px] uppercase tracking-wide text-slate-400">Cliente</p>
+          <p className="text-[8.5px] uppercase tracking-wide text-slate-400">Preparada para</p>
+          <p className="text-sm font-bold text-brand-dark">{cotizacion.cliente || 'Por definir'}</p>
+        </div>
+        <div>
+          <p className="text-[8.5px] uppercase tracking-wide text-slate-400">Plantilla</p>
           <p className="text-sm font-bold text-brand-dark">
-            {empresa.empresa || 'Por definir'}
+            {cotizacion.empleados > 0 ? `${formatNumber(cotizacion.empleados)} colaboradores` : '—'}
           </p>
         </div>
         <div>
-          <p className="text-[9px] uppercase tracking-wide text-slate-400">Plantilla</p>
-          <p className="text-sm font-bold text-brand-dark">
-            {formatNumber(empresa.numEmpleados)} empleados
+          <p className="text-[8.5px] uppercase tracking-wide text-slate-400">
+            {plural(sedes.length, 'Sede', 'Sedes')}
           </p>
+          <p className="text-sm font-bold text-brand-dark">{nombresSedes.join(' · ') || '—'}</p>
         </div>
-        <div>
-          <p className="text-[9px] uppercase tracking-wide text-slate-400">
-            Dosis a aplicar
-          </p>
-          <p className="text-sm font-bold text-brand-dark">
-            {formatNumber(logistica.dosisTotales)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[9px] uppercase tracking-wide text-slate-400">
-            {logistica.sedes.length > 1 ? 'Sedes' : 'Sede'}
-          </p>
-          <p className="text-sm font-bold text-brand-dark">
-            {logistica.sedes.map((s) => s.destino || 'Por definir').join(' · ')}
-          </p>
-        </div>
-      </div>
+      </section>
 
-      {/* ---- 1. Biológicos ---- */}
-      <Seccion n={1} titulo="Biológicos" />
+      {/* ---------------- 1. Resumen ejecutivo ---------------- */}
+      <Seccion n={1} titulo="Resumen de la campaña" />
+      <div className="grid grid-cols-6 gap-2">
+        <Dato etiqueta="Dosis" valor={formatNumber(r.dosisTotales)} />
+        <Dato etiqueta={plural(r.lineas.length, 'Vacuna', 'Vacunas')} valor={String(r.lineas.length)} />
+        <Dato etiqueta={plural(sedes.length, 'Sede', 'Sedes')} valor={String(sedes.length)} />
+        <Dato etiqueta="Jornadas" valor={formatNumber(r.jornadas)} />
+        <Dato etiqueta="Turnos enfermería" valor={formatNumber(r.turnos)} />
+        <Dato etiqueta="Total" valor={dinero(r.total)} fuerte />
+      </div>
+      <p className="mt-3 text-[10.5px] leading-relaxed text-slate-600">
+        Campaña de vacunación para <strong className="text-brand-dark">{cliente}</strong> con{' '}
+        <strong className="text-brand-dark">{formatNumber(r.dosisTotales)} dosis</strong> de{' '}
+        {enLista(productos)}, aplicadas en{' '}
+        {varias ? `${sedes.length} sedes: ${enLista(nombresSedes)}` : `la sede ${nombresSedes[0] ?? ''}`}. Grupo Leucotec lleva a sus instalaciones al personal de enfermería
+        durante {formatNumber(r.jornadas)} {plural(r.jornadas, 'jornada', 'jornadas')}, con todos los
+        insumos de aplicación y el manejo certificado de los residuos biológico-infecciosos.
+        {varias && ' Cada sede cuenta con su propio equipo, por lo que pueden operar al mismo tiempo.'}
+        {!cobra && (
+          <>
+            {' '}
+            <strong className="text-brand-dark">
+              El servicio completo va incluido: se paga únicamente el biológico.
+            </strong>
+          </>
+        )}
+      </p>
+
+      {/* ---------------- 2. Biológicos ---------------- */}
+      <Seccion n={2} titulo="Biológicos" nota="Precio por dosis aplicada" />
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <th className={th}>Vacuna</th>
+            <th className={th}>#</th>
             <th className={th}>Producto</th>
-            <th className={`${th} ${num}`}>Dosis</th>
-            <th className={`${th} ${num}`}>P. unitario</th>
-            <th className={`${th} ${num}`}>Importe</th>
+            <th className={`${th} ${der}`}>Dosis</th>
+            <th className={`${th} ${der}`}>Precio unitario</th>
+            <th className={`${th} ${der}`}>Importe</th>
           </tr>
         </thead>
         <tbody>
-          {lineas.map((l) => (
-            <tr key={l.enfermedad}>
-              <td className={td}>
-                <span className="font-bold text-brand-dark">{l.enfermedad}</span>
-                {l.anios > 1 && (
-                  <span className="ml-1 text-slate-400">
-                    {'·'} protege {l.anios} años
-                  </span>
-                )}
-              </td>
-              <td className={td}>{l.producto}</td>
-              <td className={`${td} ${num}`}>{formatNumber(l.personas)}</td>
-              <td className={`${td} ${num}`}>{formatCurrency(l.precio)}</td>
-              <td className={`${td} ${num} font-bold`}>{formatCurrency(l.importe)}</td>
+          {r.lineas.map((l, i) => (
+            <tr key={`${l.producto}-${i}`}>
+              <td className={`${td} w-6 text-slate-400`}>{i + 1}</td>
+              <td className={`${td} font-semibold text-brand-dark`}>{l.producto}</td>
+              <td className={`${td} ${der}`}>{formatNumber(l.dosis)}</td>
+              <td className={`${td} ${der}`}>{dinero(l.precio)}</td>
+              <td className={`${td} ${der} font-bold text-brand-dark`}>{dinero(l.importe)}</td>
             </tr>
           ))}
-          <tr>
-            <td className="px-2 py-1.5 font-bold text-brand-dark" colSpan={4}>
+          <tr className="bg-slate-50">
+            <td className="px-2 py-2 font-bold text-brand-dark" colSpan={2}>
               Subtotal biológicos
             </td>
-            <td className={`px-2 py-1.5 font-bold text-brand-dark ${num}`}>
-              {formatCurrency(resultado.inversionVacunasTotal)}
-            </td>
+            <td className={`px-2 py-2 font-bold text-brand-dark ${der}`}>{formatNumber(r.dosisTotales)}</td>
+            <td />
+            <td className={`px-2 py-2 font-bold text-brand-dark ${der}`}>{dinero(r.subtotalBiologicos)}</td>
           </tr>
         </tbody>
       </table>
 
-      {/* ---- 2. Servicio de aplicación, sede por sede ---- */}
-      <Seccion n={2} titulo="Servicio de aplicación" />
-      {logistica.sedes.map((s, i) => (
-        <div key={i} className="mb-3">
-          {logistica.sedes.length > 1 && (
-            <p className="mb-1 text-[10px] font-bold text-brand-dark">
-              Sede {i + 1}
-              {s.destino ? ` · ${s.destino}` : ''}
-              <span className="ml-1 font-normal text-slate-400">
-                {' '}({formatNumber(s.dosis)} dosis)
+      {/* ---------------- 3. Servicio de aplicación ---------------- */}
+      <Seccion n={3} titulo="Servicio de aplicación en sitio" nota={varias ? 'Desglose por sede' : undefined} />
+      {sedes.map((s, i) => (
+        <div key={i} className="mb-3 break-inside-avoid">
+          {varias && (
+            <p className="mb-1 mt-2 text-[10px] font-bold text-brand-dark">
+              {nombresSedes[i]}
+              <span className="ml-2 font-normal text-slate-400">
+                {formatNumber(s.dosis)} dosis · {s.foranea ? 'sede foránea' : 'sede local'}
               </span>
             </p>
           )}
@@ -230,57 +238,66 @@ export function CotizacionDetallada({
               <tr>
                 <th className={th}>Concepto</th>
                 <th className={th}>Detalle</th>
-                <th className={`${th} ${num}`}>Cantidad</th>
-                <th className={`${th} ${num}`}>Importe</th>
+                <th className={`${th} ${der}`}>Cantidad</th>
+                <th className={`${th} ${der}`}>Importe</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className={td}>Personal de enfermería</td>
-                <td className={td}>
-                  {s.enfermerasPorDia}{' '}
-                  {s.enfermerasPorDia === 1 ? 'enfermera' : 'enfermeras'} por{' '}
-                  {s.diasVacunacion}{' '}
-                  {s.diasVacunacion === 1 ? 'jornada' : 'jornadas'} ·{' '}
-                  {s.foranea
-                    ? 'sede foránea'
-                    : s.jornadaLarga
-                      ? 'jornada de más de 4 horas'
-                      : 'jornada de 1 a 4 horas'}
-                </td>
-                <td className={`${td} ${num}`}>
-                  {s.turnos} {s.turnos === 1 ? 'turno' : 'turnos'}
-                </td>
-                <td className={`${td} ${num}`}>{importe(s.enfermeras)}</td>
-              </tr>
+              {s.turnos > 0 && (
+                <tr>
+                  <td className={`${td} font-semibold text-brand-dark`}>Personal de enfermería</td>
+                  <td className={td}>
+                    {s.enfermerasPorDia} {plural(s.enfermerasPorDia, 'enfermera', 'enfermeras')} por{' '}
+                    {s.diasVacunacion} {plural(s.diasVacunacion, 'jornada', 'jornadas')}
+                    {' · '}
+                    {s.foranea
+                      ? 'desplazamiento a sede foránea'
+                      : s.jornadaLarga
+                        ? 'jornada de más de 4 horas'
+                        : 'jornada de 1 a 4 horas'}
+                  </td>
+                  <td className={`${td} ${der}`}>
+                    {s.turnos} {plural(s.turnos, 'turno', 'turnos')}
+                  </td>
+                  <td className={`${td} ${der}`}>{importe(s.enfermeras)}</td>
+                </tr>
+              )}
+              {s.dosis > 0 && (
+                <tr>
+                  <td className={`${td} font-semibold text-brand-dark`}>Aplicación de dosis</td>
+                  <td className={td}>Aplicación de cada dosis por personal de enfermería en sitio</td>
+                  <td className={`${td} ${der}`}>{formatNumber(s.dosis)} dosis</td>
+                  <td className={`${td} ${der}`}>{importe(0)}</td>
+                </tr>
+              )}
               {s.transporte > 0 && (
                 <tr>
-                  <td className={td}>Traslado del equipo</td>
+                  <td className={`${td} font-semibold text-brand-dark`}>Traslado del equipo</td>
                   <td className={td}>
                     {s.foranea
-                      ? 'Viaje a la sede foránea, ida y vuelta'
-                      : 'Traslado del personal y del equipo'}
+                      ? 'Viaje del personal y del equipo a la sede foránea, ida y vuelta'
+                      : 'Traslado del personal y del equipo a sus instalaciones'}
                   </td>
-                  <td className={`${td} ${num}`}>1</td>
-                  <td className={`${td} ${num}`}>{importe(s.transporte)}</td>
+                  <td className={`${td} ${der}`}>1 servicio</td>
+                  <td className={`${td} ${der}`}>{importe(s.transporte)}</td>
                 </tr>
               )}
               {s.comidas > 0 && (
                 <tr>
-                  <td className={td}>Alimentación del equipo</td>
-                  <td className={td}>Durante las jornadas de vacunación</td>
-                  <td className={`${td} ${num}`}>1</td>
-                  <td className={`${td} ${num}`}>{importe(s.comidas)}</td>
+                  <td className={`${td} font-semibold text-brand-dark`}>Alimentación del equipo</td>
+                  <td className={td}>Alimentos del personal durante las jornadas de vacunación</td>
+                  <td className={`${td} ${der}`}>
+                    {s.diasVacunacion} {plural(s.diasVacunacion, 'jornada', 'jornadas')}
+                  </td>
+                  <td className={`${td} ${der}`}>{importe(s.comidas)}</td>
                 </tr>
               )}
               {s.pruebaCovid > 0 && (
                 <tr>
-                  <td className={td}>Prueba COVID al personal</td>
-                  <td className={td}>
-                    Tamizaje del equipo antes de entrar a sus instalaciones
-                  </td>
-                  <td className={`${td} ${num}`}>1</td>
-                  <td className={`${td} ${num}`}>{importe(s.pruebaCovid)}</td>
+                  <td className={`${td} font-semibold text-brand-dark`}>Prueba COVID al personal</td>
+                  <td className={td}>Tamizaje del equipo antes de ingresar a sus instalaciones</td>
+                  <td className={`${td} ${der}`}>1 por sede</td>
+                  <td className={`${td} ${der}`}>{importe(s.pruebaCovid)}</td>
                 </tr>
               )}
             </tbody>
@@ -288,128 +305,139 @@ export function CotizacionDetallada({
         </div>
       ))}
 
-      {/* ---- 3. Insumos y RPBI ---- */}
-      <Seccion n={3} titulo="Insumos de aplicación y manejo de RPBI" />
+      {/* ---------------- 4. Insumos ---------------- */}
+      <Seccion n={4} titulo="Insumos de aplicación" nota={`Calculados para ${formatNumber(r.dosisTotales)} dosis`} />
       <table className="w-full border-collapse">
         <thead>
           <tr>
             <th className={th}>Insumo</th>
             <th className={th}>Rendimiento</th>
-            <th className={`${th} ${num}`}>Cantidad</th>
+            <th className={`${th} ${der}`}>Cantidad</th>
+            <th className={`${th} ${der}`}>Importe</th>
           </tr>
         </thead>
         <tbody>
           {INSUMOS_APLICACION.map((ins) => {
-            const cantidad = cantidadInsumo(ins, logistica.dosisTotales);
+            const cantidad = cantidadInsumo(ins, r.dosisTotales);
             return (
               <tr key={ins.nombre}>
-                <td className={td}>{ins.nombre}</td>
+                <td className={`${td} font-semibold text-brand-dark`}>{ins.nombre}</td>
                 <td className={td}>
                   {ins.porDosis >= 1
                     ? `${ins.porDosis} ${unidadDe(ins, ins.porDosis)} por dosis`
                     : `1 ${ins.unidad} por cada ${Math.round(1 / ins.porDosis)} dosis`}
                 </td>
-                <td className={`${td} ${num}`}>
+                <td className={`${td} ${der}`}>
                   {formatNumber(cantidad)} {unidadDe(ins, cantidad)}
                 </td>
+                <td className={`${td} ${der}`}>{importe(0)}</td>
               </tr>
             );
           })}
-          {MANEJO_RPBI.map((r) => (
-            <tr key={r.nombre}>
-              <td className={td}>{r.nombre}</td>
-              <td className={td}>{r.detalle}</td>
-              <td className={`${td} ${num}`}>
-                {logistica.sedes.length > 1
-                  ? `${logistica.sedes.length} sedes`
-                  : 'Incluido'}
+        </tbody>
+      </table>
+
+      {/* ---------------- 5. RPBI ---------------- */}
+      <Seccion n={5} titulo="Manejo de residuos peligrosos (RPBI)" nota="NOM-087-SEMARNAT-SSA1-2002" />
+      <table className="w-full border-collapse">
+        <thead>
+          <tr>
+            <th className={th}>Concepto</th>
+            <th className={th}>Detalle</th>
+            <th className={`${th} ${der}`}>Cantidad</th>
+            <th className={`${th} ${der}`}>Importe</th>
+          </tr>
+        </thead>
+        <tbody>
+          {MANEJO_RPBI.map((x) => (
+            <tr key={x.nombre}>
+              <td className={`${td} font-semibold text-brand-dark`}>{x.nombre}</td>
+              <td className={td}>{x.detalle}</td>
+              <td className={`${td} ${der}`}>
+                {sedes.length} {plural(sedes.length, 'sede', 'sedes')}
               </td>
+              <td className={`${td} ${der}`}>{importe(0)}</td>
             </tr>
           ))}
-          <tr>
-            <td className="px-2 py-1.5 font-bold text-brand-dark" colSpan={2}>
-              Insumos y manejo de RPBI
+          <tr className="bg-slate-50">
+            <td className="px-2 py-2 font-bold text-brand-dark" colSpan={3}>
+              Servicio, insumos y RPBI
             </td>
-            <td className={`px-2 py-1.5 font-bold text-brand-dark ${num}`}>
-              {importe(logistica.insumos)}
+            <td className={`px-2 py-2 font-bold text-brand-dark ${der}`}>
+              {cobra ? dinero(r.logistica.total) : <span className="text-brand-accent">Incluido</span>}
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* ---- Total ---- */}
-      <div className="mt-6 flex justify-end">
-        <table className="w-1/2 border-collapse">
+      {/* ---------------- Totales ---------------- */}
+      <section className="mt-6 flex break-inside-avoid justify-end">
+        <table className="w-[55%] border-collapse text-[11px]">
           <tbody>
             <tr>
-              <td className="px-2 py-1 text-slate-500">Biológicos</td>
-              <td className={`px-2 py-1 ${num}`}>
-                {formatCurrency(resultado.inversionVacunasTotal)}
-              </td>
+              <td className="px-3 py-1.5 text-slate-500">Biológicos</td>
+              <td className={`px-3 py-1.5 ${der}`}>{dinero(r.subtotalBiologicos)}</td>
             </tr>
             <tr>
-              <td className="px-2 py-1 text-slate-500">
-                Servicio de aplicación, insumos y RPBI
-              </td>
-              <td className={`px-2 py-1 ${num}`}>
-                {cobra ? formatCurrency(logistica.total) : (
-                  <span className="text-slate-400">Sin costo</span>
-                )}
+              <td className="px-3 py-1.5 text-slate-500">Servicio de aplicación, insumos y RPBI</td>
+              <td className={`px-3 py-1.5 ${der}`}>
+                {cobra ? dinero(r.logistica.total) : <span className="font-semibold text-brand-accent">Sin costo</span>}
               </td>
             </tr>
             <tr className="bg-brand-dark text-white">
-              <td className="px-2 py-2 text-sm font-bold">Total de la campaña</td>
-              <td className={`px-2 py-2 text-sm font-bold ${num}`}>
-                {formatCurrency(resultado.inversionTotal)}
+              <td className="px-3 py-2.5 text-[13px] font-bold">Total de la campaña</td>
+              <td className={`px-3 py-2.5 text-[13px] font-bold ${der}`}>{dinero(r.total)}</td>
+            </tr>
+            <tr>
+              <td className="px-3 pt-1 text-[9px] text-slate-400" colSpan={2}>
+                Precios en pesos mexicanos. No incluyen IVA.
               </td>
             </tr>
           </tbody>
         </table>
+      </section>
+
+      {/* ---------------- 6. Condiciones ---------------- */}
+      <div className="break-inside-avoid">
+        <Seccion n={6} titulo="Condiciones" />
+        <ul className="ml-4 list-disc space-y-1 text-[9.5px] text-slate-500">
+          <li>
+            Cotización vigente por {DIAS_VIGENCIA} días naturales. El precio del biológico está sujeto a
+            disponibilidad del laboratorio.
+          </li>
+          {!cobra && (
+            <li>
+              El personal de enfermería, el traslado, los insumos y el manejo de RPBI van incluidos sin
+              costo adicional.
+            </li>
+          )}
+          <li>
+            Los residuos peligrosos biológico-infecciosos se manejan conforme a la NOM-087-SEMARNAT-SSA1-2002,
+            con recolección por empresa autorizada.
+          </li>
+          <li>El pago con tarjeta causa un cargo adicional por comisión bancaria.</li>
+          <li>Las jornadas se programan de común acuerdo con al menos 5 días hábiles de anticipación.</li>
+        </ul>
       </div>
 
-      {/* ---- Condiciones ---- */}
-      <Seccion n={4} titulo="Condiciones" />
-      <ul className="ml-4 list-disc space-y-1 text-[9.5px] text-slate-500">
-        <li>Precios en pesos mexicanos. No incluyen IVA.</li>
-        <li>
-          Vigencia de la cotización: 30 días naturales. El precio del biológico
-          está sujeto a disponibilidad del laboratorio.
-        </li>
-        {!cobra && (
-          <li>
-            El servicio de aplicación, los insumos y el manejo de RPBI van{' '}
-            <strong>incluidos sin costo adicional</strong>: se cobra únicamente
-            el biológico.
-          </li>
-        )}
-        <li>
-          Los residuos peligrosos biológico-infecciosos se manejan conforme a la
-          NOM-087-SEMARNAT-SSA1-2002, con recolección por empresa autorizada y
-          entrega del manifiesto correspondiente.
-        </li>
-        <li>
-          El pago con tarjeta causa un cargo adicional por comisión bancaria.
-        </li>
-        <li>
-          La programación de las jornadas se confirma con al menos 5 días
-          hábiles de anticipación.
-        </li>
-        {logistica.sedes.length > 1 && (
-          <li>
-            La campaña contempla {logistica.sedes.length} sedes. Cada una lleva
-            su propio equipo, por lo que pueden operar de forma simultánea.
-          </li>
-        )}
-      </ul>
+      {/* ---------------- 7. Aceptación ---------------- */}
+      <section className="mt-10 grid break-inside-avoid grid-cols-2 gap-12">
+        <div>
+          <div className="h-12 border-b border-slate-400" />
+          <p className="mt-1.5 text-[9.5px] font-bold text-brand-dark">Acepto la cotización</p>
+          <p className="text-[9px] text-slate-400">Nombre, cargo y firma · {cotizacion.cliente || 'Cliente'}</p>
+        </div>
+        <div>
+          <div className="h-12 border-b border-slate-400" />
+          <p className="mt-1.5 text-[9.5px] font-bold text-brand-dark">Grupo Leucotec</p>
+          <p className="text-[9px] text-slate-400">Ejecutivo de cuenta</p>
+        </div>
+      </section>
 
-      <div className="mt-8 flex items-end justify-between border-t border-slate-200 pt-3">
-        <p className="text-[9px] text-slate-400">
-          Grupo Leucotec · Salud preventiva corporativa
-        </p>
-        <p className="text-[9px] text-slate-300">
-          Cotización generada con el simulador de N3 Thinktech IA Laboratory
-        </p>
-      </div>
-    </section>
+      <footer className="mt-8 flex items-center justify-between border-t border-slate-200 pt-3 text-[8.5px] text-slate-400">
+        <span>Grupo Leucotec · Salud preventiva corporativa</span>
+        <span>Folio {cotizacion.folio}</span>
+      </footer>
+    </article>
   );
 }

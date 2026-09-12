@@ -5,10 +5,10 @@
 // mismas celdas, mismas fórmulas, mismo formato, las hojas Costos e Insumos
 // siguen ocultas y las columnas D:F también. Aquí NO se reconstruyó nada.
 //
-// Lo único que se agrega es un bloque DEBAJO de su rejilla (filas 45 a 49)
-// con los datos que el simulador necesita y que su archivo no tenía: nombre
-// del cliente, plantilla y costo del día. Su área de trabajo, de la fila 1 a
-// la 42, queda intacta.
+// Lo único que se agrega es un bloque DEBAJO de su rejilla (filas 45 a 53):
+// los datos del cliente que su archivo no tenía, el botón IMPRIMIR COTIZACION
+// y el enlace al simulador de ROI. Su área de trabajo, de la fila 1 a la 42,
+// queda intacta.
 //
 // Hoja:   1B6nQ9KAyXIE-rgAYEoiA7LrTcgzIfwoI0rRAEW9JXpY
 // Origen: COTIZADOR Campaña Vacunas varias 022024 V10.4.xlsx
@@ -22,6 +22,11 @@
 // ---------------------------------------------------------------------------
 
 var URL_SIMULADOR = 'https://leucotec.ia.potenttial.site/';
+
+// La cotizacion impresa vive en la web: es el mismo documento que imprime el
+// dashboard. Si cada puerta armara su propia cotizacion, en un mes dejarian
+// de coincidir.
+var URL_COTIZACION = 'https://leucotec.ia.potenttial.site/cotizacion';
 
 // Quién puede editar las fórmulas. Los vendedores solo tocan las celdas
 // verdes. En Sheets no hay contraseña: se nombra por correo, que además es
@@ -140,6 +145,75 @@ function ENLACEROI(dosis, precio, logistica, cliente, empleados, costoDia) {
 }
 
 /**
+ * Arma el enlace que abre la cotizacion detallada lista para imprimir.
+ *
+ * A diferencia del enlace al ROI, aqui viajan TODOS los renglones: un
+ * producto sin equivalente en el simulador igual se cotiza y tiene que salir
+ * impreso, o el total del documento no cuadra con la hoja. Si el producto
+ * tiene nombre comercial se usa ese, que es el que entiende el cliente; si
+ * no, la descripcion del catalogo.
+ *
+ * La cotizacion viaja como JSON en base64: las descripciones de Martin traen
+ * comas, dos puntos y acentos, y con separadores un renglon se partiria.
+ *
+ * Solo viajan PRECIOS DE VENTA. Los costos de compra nunca salen de la hoja.
+ *
+ * Los argumentos no se usan dentro: son TODAS las celdas que el vendedor
+ * captura, para que Sheets rehaga el enlace en cuanto cambie cualquiera. Si
+ * falta una, el vendedor imprime la cotizacion anterior sin darse cuenta.
+ */
+function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente) {
+  var h = hojaCotizador();
+
+  var filas = h.getRange('B5:H12').getValues();
+  var lineas = [];
+  for (var f = 0; f < filas.length; f++) {
+    var d = String(filas[f][0] || '').trim();
+    var dos = Number(filas[f][1]) || 0;
+    var pre = Number(filas[f][5]) || 0;
+    if (!d || d === 'NINGUNA' || dos <= 0) continue;
+    lineas.push([nombreCorto(d) || d, dos, pre]);
+  }
+  if (!lineas.length) return '';
+
+  var sedes = h.getRange('G22:J25').getValues(); // sede, dosis, destino, horas
+  var enf = h.getRange('H30:I33').getValues();   // enfermeras por dia, dias
+  var via = h.getRange('G38:I41').getValues();   // transporte, covid, comidas
+  var s = [];
+  for (var i = 0; i < 4; i++) {
+    var tipo = String(sedes[i][0] || '').toUpperCase();
+    if (!tipo || tipo === 'NINGUNA') continue;
+    s.push([
+      String(sedes[i][2] || '').trim(),
+      Number(sedes[i][1]) || 0,
+      tipo === 'FORANEO' ? 1 : 0,
+      String(sedes[i][3] || '') === '1 a 4' ? 0 : 1,
+      Number(enf[i][0]) || 0,
+      Number(enf[i][1]) || 0,
+      Number(via[i][0]) || 0,
+      Number(via[i][2]) || 0
+    ]);
+  }
+
+  var ahora = new Date();
+  var dos2 = function (n) { return (n < 10 ? '0' : '') + n; };
+  var folio = 'COT-' + ahora.getFullYear() + dos2(ahora.getMonth() + 1) + dos2(ahora.getDate()) +
+    '-' + dos2(ahora.getHours()) + dos2(ahora.getMinutes());
+
+  var carga = {
+    f: folio,
+    c: String(h.getRange('B46').getValue() || '').trim(),
+    e: Number(h.getRange('B47').getValue()) || 0,
+    l: lineas,
+    s: s,
+    cl: 0 // Leucotec absorbe la operacion: se enumera todo como "Incluido"
+  };
+  var b64 = Utilities.base64EncodeWebSafe(JSON.stringify(carga), Utilities.Charset.UTF_8)
+    .replace(/=+$/, '');
+  return URL_COTIZACION + '?c=' + b64;
+}
+
+/**
  * Agrega el bloque del ROI DEBAJO de la rejilla de Martin.
  *
  * Su hoja trabaja de la fila 1 a la 42 y ahí no se toca nada. El bloque va en
@@ -148,25 +222,42 @@ function ENLACEROI(dosis, precio, logistica, cliente, empleados, costoDia) {
  */
 function prepararEnlace() {
   var h = hojaCotizador();
-  if (h.getMaxRows() < 52) h.insertRowsAfter(h.getMaxRows(), 52 - h.getMaxRows());
+  if (h.getMaxRows() < 53) h.insertRowsAfter(h.getMaxRows(), 53 - h.getMaxRows());
 
-  h.getRange('A45').setValue('PARA EL SIMULADOR DE ROI').setFontWeight('bold');
-  h.getRange('A46:A49').setValues([
-    ['CLIENTE'], ['No. DE EMPLEADOS'], ['COSTO DIA / EMPLEADO'], ['ENLACE']
+  // Lo que el vendedor ya capturo no se pierde al reacomodar el bloque.
+  var capturado = h.getRange('B46:B48').getValues();
+
+  // Por si la hoja trae el acomodo anterior del bloque.
+  h.getRange('A45:F53').breakApart();
+  h.getRange('A45:F53').clearContent().clearFormat();
+
+  h.getRange('A45').setValue('DATOS DEL CLIENTE').setFontWeight('bold');
+  h.getRange('A46:A48').setValues([['CLIENTE'], ['No. DE EMPLEADOS'], ['COSTO DIA / EMPLEADO']])
+    .setFontWeight('bold');
+  h.getRange('B46:B48').setValues([
+    [capturado[0][0]], [capturado[1][0]], [capturado[2][0] || 1300]
   ]);
-  h.getRange('A46:A49').setFontWeight('bold');
-
-  if (!h.getRange('B48').getValue()) h.getRange('B48').setValue(1300);
   h.getRange('B48').setNumberFormat('"$"#,##0.00');
   h.getRange('B46:B48').setBackground(VERDE)
     .setBorder(true, true, true, true, true, true);
 
-  h.getRange('B49').setFormula('=ENLACEROI(C13;H17;N42;B46;B47;B48)')
-    .setFontColor('#1155CC');
-  h.getRange('B49:F49').merge();
-  h.getRange('B49').setWrap(true);
+  // El boton que importa: la cotizacion es el producto final del proceso.
+  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B46:B48';
+  h.getRange('A50').setValue('COTIZACION').setFontWeight('bold');
+  h.getRange('B50:F50').merge();
+  h.getRange('B50')
+    // LET calcula el enlace una sola vez; sin eso se arma dos veces por celda.
+    .setFormula('=LET(u;COTIZACIONURL(' + deps + ');' +
+      'IF(u="";"Captura al menos una vacuna con dosis";HYPERLINK(u;"IMPRIMIR COTIZACION")))')
+    .setBackground('#DC052B').setFontColor('#FFFFFF').setFontWeight('bold')
+    .setFontSize(13).setHorizontalAlignment('center').setVerticalAlignment('middle');
+  h.setRowHeight(50, 36);
 
-  h.getRange('A51').setValue(
+  h.getRange('A52').setValue('SIMULADOR DE ROI').setFontWeight('bold').setFontColor('#666666');
+  h.getRange('B52:F52').merge();
+  h.getRange('B52').setFormula('=ENLACEROI(' + deps + ')').setFontColor('#1155CC').setWrap(true);
+
+  h.getRange('A53').setValue(
     'Las celdas verdes se capturan. Lo demas se calcula solo y esta bloqueado.'
   ).setFontColor('#666666').setFontStyle('italic');
 }
