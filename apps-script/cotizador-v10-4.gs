@@ -15,8 +15,11 @@
 //
 // Verificado contra el caso que Martin capturó en su archivo:
 //   30 dosis de Fluzactal a $405, sede LOCAL "1 a 4", 1 enfermera, 1 jornada,
-//   transporte $800  ->  logística $2,277.19, costo $9,717.19, precio $12,150,
-//   margen 20.02%, semáforo "ok".
+//   transporte $800  ->  logística $2,277.19, precio $12,150, semáforo "ok".
+//
+// OJO: este repositorio es público. Nunca escribas aquí costos de compra ni
+// márgenes, ni siquiera de ejemplo: con el margen y el precio se despeja el
+// costo con una resta.
 //
 // Para conectarlo: Leucotec > Conectar con el simulador.
 // ---------------------------------------------------------------------------
