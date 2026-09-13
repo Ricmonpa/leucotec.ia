@@ -9,6 +9,7 @@ import { AnalysisSequence } from './components/AnalysisSequence';
 import { Header } from './components/Header';
 import { CotizacionDetallada } from './components/CotizacionDetallada';
 import { PaginaCotizacion } from './components/PaginaCotizacion';
+import { Cotizador } from './components/Cotizador';
 import { cotizacionDesdeSimulador } from './lib/cotizacionImprimible';
 import { InputPanel } from './components/InputPanel';
 import { KpiCards } from './components/KpiCards';
@@ -24,11 +25,14 @@ import {
 } from './lib/lead';
 import { useRoiCalculator } from './hooks/useRoiCalculator';
 
-/** La cotización impresa es herramienta interna: no pasa por el registro. */
-const esPaginaCotizacion = () => window.location.pathname.replace(/\/+$/, '') === '/cotizacion';
+/** La ruta sin la diagonal final: "/cotizador/" y "/cotizador" son lo mismo. */
+const ruta = () => window.location.pathname.replace(/\/+$/, '');
 
 function App() {
-  if (esPaginaCotizacion()) return <PaginaCotizacion />;
+  // Las herramientas de ventas son internas: no pasan por el registro de la
+  // entrada, que es para prospectos.
+  if (ruta() === '/cotizador') return <Cotizador />;
+  if (ruta() === '/cotizacion') return <PaginaCotizacion />;
   return <EntradaSimulador />;
 }
 

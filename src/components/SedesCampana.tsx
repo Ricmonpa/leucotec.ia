@@ -18,6 +18,8 @@ interface SedesCampanaProps {
   setSedeCampo: <K extends keyof Sede>(i: number, campo: K, valor: Sede[K]) => void;
   agregarSede: () => void;
   quitarSede: (i: number) => void;
+  /** Campos en verde, como en la hoja de Martin. */
+  verde?: boolean;
 }
 
 export function SedesCampana({
@@ -26,6 +28,7 @@ export function SedesCampana({
   setSedeCampo,
   agregarSede,
   quitarSede,
+  verde,
 }: SedesCampanaProps) {
   const varias = sedes.length > 1;
   // Sólo UNA sede absorbe las dosis que no se repartieron: la primera que se
@@ -107,6 +110,7 @@ export function SedesCampana({
 
               <div className="grid grid-cols-2 gap-2">
                 <Field
+                  verde={verde}
                   type="number"
                   label="Jornadas"
                   suffix="días"
@@ -115,6 +119,7 @@ export function SedesCampana({
                   onChange={(v) => setSedeCampo(i, 'diasVacunacion', v)}
                 />
                 <Field
+                  verde={verde}
                   type="number"
                   label="Enfermeras/día"
                   min={0}
@@ -125,6 +130,7 @@ export function SedesCampana({
 
               <div className="grid grid-cols-2 gap-2">
                 <Field
+                  verde={verde}
                   type="number"
                   label="Transporte"
                   prefix="$"
@@ -133,6 +139,7 @@ export function SedesCampana({
                   onChange={(v) => setSedeCampo(i, 'transporte', v)}
                 />
                 <Field
+                  verde={verde}
                   type="number"
                   label="Comidas"
                   prefix="$"
@@ -145,6 +152,7 @@ export function SedesCampana({
               {/* Con una sola sede el reparto es obvio y el campo sólo estorba. */}
               {varias && (
                 <Field
+                  verde={verde}
                   type="number"
                   label="Dosis en esta sede"
                   min={0}

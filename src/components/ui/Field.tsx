@@ -5,6 +5,11 @@ interface FieldBaseProps {
   /** Texto de ayuda opcional bajo el campo. */
   hint?: string;
   className?: string;
+  /**
+   * Pinta el campo en verde claro. En el cotizador de Martin el verde marca
+   * lo que el vendedor captura, y en las herramientas de ventas se respeta.
+   */
+  verde?: boolean;
 }
 
 interface TextFieldProps extends FieldBaseProps {
@@ -27,13 +32,16 @@ interface NumberFieldProps extends FieldBaseProps {
 
 type FieldProps = TextFieldProps | NumberFieldProps;
 
-const inputBase =
-  'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-800 ' +
+const inputComun =
+  'w-full rounded-lg border px-3 py-2.5 text-slate-800 ' +
   'transition-all focus:border-brand-primary focus:bg-white focus:outline-none ' +
   'focus:ring-2 focus:ring-brand-primary/30';
 
 export function Field(props: FieldProps) {
-  const { label, hint, className } = props;
+  const { label, hint, className, verde } = props;
+  const inputBase = `${inputComun} ${
+    verde ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-slate-50'
+  }`;
 
   // Mientras el usuario escribe se conserva el texto crudo, para que pueda
   // borrar el campo y teclear otro número sin que el input se le resista.

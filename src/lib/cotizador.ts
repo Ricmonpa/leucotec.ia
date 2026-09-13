@@ -12,6 +12,7 @@
 
 import type { ParametrosEmpresa, ResultadoSimulacion } from './calculations';
 import type { ParametrosEnfermedad } from './calculations';
+import { resumirCotizacion, type CotizacionImprimible } from './cotizacionImprimible';
 
 /**
  * URL del Apps Script del cotizador. Es distinta a la del registro de leads:
@@ -115,6 +116,59 @@ export async function enviarCotizacion(
     return { folio, estado };
   } catch {
     // Apps Script sin CORS abierto, sin señal, o script caído.
+    return { folio, estado: 'SIN_CONEXION' };
+  }
+}
+
+/**
+ * Manda al Sheet una cotización del cotizador en línea y devuelve el semáforo.
+ *
+ * Es el mismo receptor que usa el simulador: cruza cada producto contra los
+ * costos de compra, suma la logística como costo y compara el margen contra
+ * el mínimo de Martin. Al navegador sólo regresa una palabra —OK o REVISAR—,
+ * nunca el costo ni el margen: con el margen y el precio a la vista, un
+ * vendedor podría despejar el costo de compra con una resta.
+ *
+ * De paso deja la cotización en el historial del Sheet, con su folio.
+ */
+export async function revisarMargenCotizacion(
+  cotizacion: CotizacionImprimible,
+  vendedor: string,
+): Promise<EnvioCotizacion> {
+  const { folio } = cotizacion;
+  if (!cotizadorConfigurado()) return { folio, estado: 'SIN_CONEXION' };
+
+  const r = resumirCotizacion(cotizacion);
+
+  try {
+    const respuesta = await fetch(COTIZADOR_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        tipo: 'cotizacion',
+        folio,
+        fecha: fechaMX(),
+        vendedor,
+        empresa: cotizacion.cliente,
+        empleados: cotizacion.empleados,
+        lineas: r.lineas.map((l) => ({
+          producto: l.producto,
+          personas: l.dosis,
+          precioUnitario: l.precio,
+        })),
+        logistica: {
+          dosis: r.dosisTotales,
+          total: Math.round(r.logistica.total),
+          cobradaAlCliente: cotizacion.cobrarLogistica,
+        },
+      }),
+    });
+
+    const datos = (await respuesta.json()) as { estado?: string };
+    const estado =
+      datos.estado === 'OK' || datos.estado === 'REVISAR' ? datos.estado : 'SIN_CONEXION';
+    return { folio, estado };
+  } catch {
     return { folio, estado: 'SIN_CONEXION' };
   }
 }
