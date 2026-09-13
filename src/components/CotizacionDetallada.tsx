@@ -71,14 +71,15 @@ function Seccion({ n, titulo, nota }: { n: number; titulo: string; nota?: string
 function Dato({ etiqueta, valor, fuerte }: { etiqueta: string; valor: string; fuerte?: boolean }) {
   return (
     <div
-      className={`rounded-lg px-3 py-2 ${
+      // El total ocupa dos columnas: en campañas grandes el monto no cabe en una.
+      className={`rounded-lg px-3 py-2 ${fuerte ? 'col-span-2 ' : ''}${
         fuerte ? 'bg-brand-dark text-white' : 'border border-slate-200 bg-white'
       }`}
     >
       <p className={`text-[8.5px] uppercase tracking-wide ${fuerte ? 'text-white/70' : 'text-slate-400'}`}>
         {etiqueta}
       </p>
-      <p className={`mt-0.5 text-[15px] font-bold tabular-nums ${fuerte ? 'text-white' : 'text-brand-dark'}`}>
+      <p className={`mt-0.5 whitespace-nowrap text-[15px] font-bold tabular-nums ${fuerte ? 'text-white' : 'text-brand-dark'}`}>
         {valor}
       </p>
     </div>
@@ -162,7 +163,7 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
 
       {/* ---------------- 1. Resumen ejecutivo ---------------- */}
       <Seccion n={1} titulo="Resumen de la campaña" />
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-7 gap-2">
         <Dato etiqueta="Dosis" valor={formatNumber(r.dosisTotales)} />
         <Dato etiqueta={plural(r.lineas.length, 'Vacuna', 'Vacunas')} valor={String(r.lineas.length)} />
         <Dato etiqueta={plural(sedes.length, 'Sede', 'Sedes')} valor={String(sedes.length)} />
