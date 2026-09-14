@@ -176,7 +176,7 @@ Detalles que ya costaron bugs:
 
 - **Hasta 4 sedes que operan al mismo tiempo.** Cada una lleva su propio equipo: los días **no se suman** entre sedes.
 - **Reparto de dosis:** la primera sede con dosis en 0 absorbe las que no se asignaron a las demás.
-- **Leucotec absorbe la logística.** El cliente paga sólo el biológico, y la operación sale del margen. En la cotización, los renglones de operación dicen **Incluido**.
+- **La logística se calcula siempre, pero hoy no se suma al total del cliente.** Así lo hace el Excel de Martin: el gran total (H17) suma sólo vacunas, y la logística entra al costo (F17) para el semáforo. En la cotización, los renglones de operación dicen **Incluido**. *Pendiente de confirmar con Martin si se cobra, se bonifica o queda incluida.*
 
 ### Caso de referencia (prueba de regresión)
 
