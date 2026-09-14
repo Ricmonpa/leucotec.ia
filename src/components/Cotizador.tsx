@@ -459,7 +459,7 @@ export function Cotizador() {
                 Logística calculada:{' '}
                 <strong className="text-white">{dinero(r.logistica.total)}</strong>
                 <span className="block text-[10px] text-white/50">
-                  Enfermeras, traslado, insumos y RPBI. Leucotec la absorbe: no se le cobra al cliente.
+                  Enfermeras, traslado, insumos y RPBI. No va como cargo aparte: tu precio por dosis tiene que cubrirla.
                 </span>
               </div>
             </section>

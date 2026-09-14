@@ -160,9 +160,9 @@ export function InputPanel({
         Logística de Campaña
       </h2>
       <p className="mb-4 text-xs text-slate-400">
-        Enfermeras, insumos y recolección de RPBI. Normalmente Leucotec los
-        absorbe y no aparecen en la cotización; enciéndelo sólo si a este
-        cliente se le cobran aparte. Se pueden cotizar hasta cuatro sedes, aun
+        Enfermeras, insumos y recolección de RPBI. Normalmente van dentro del
+        precio por dosis y no aparecen como cargo aparte; enciéndelo sólo si a
+        este cliente se le cobran por separado. Se pueden cotizar hasta cuatro sedes, aun
         si operan al mismo tiempo.
       </p>
 

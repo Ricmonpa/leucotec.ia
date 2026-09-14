@@ -176,7 +176,7 @@ Detalles que ya costaron bugs:
 
 - **Hasta 4 sedes que operan al mismo tiempo.** Cada una lleva su propio equipo: los días **no se suman** entre sedes.
 - **Reparto de dosis:** la primera sede con dosis en 0 absorbe las que no se asignaron a las demás.
-- **La logística se calcula siempre, pero hoy no se suma al total del cliente.** Así lo hace el Excel de Martin: el gran total (H17) suma sólo vacunas, y la logística entra al costo (F17) para el semáforo. En la cotización, los renglones de operación dicen **Incluido**. *Pendiente de confirmar con Martin si se cobra, se bonifica o queda incluida.*
+- **La logística es costo y se cobra dentro del precio por dosis** (confirmado por Martin, 14 sep 2026). No va como cargo aparte: el gran total del Excel (H17) suma sólo vacunas, y la logística entra al costo (F17) para que el semáforo verifique que el precio la cubre. En la cotización, los renglones de operación dicen **Incluido** y se aclara que no hay cargos adicionales.
 
 ### Caso de referencia (prueba de regresión)
 
@@ -330,14 +330,12 @@ npm run build                           # build limpio
 **Esperando respuesta de Leucotec**
 - [ ] Renglones extra para la cotización (cadena de frío, constancias, registro nominal, consentimiento informado…). **Nada se agrega sin confirmación.**
 - [ ] Tratamiento de **IVA**. Hoy la cotización dice "No incluyen IVA", sin confirmar.
-- [ ] Cómo mostrar la logística en la cotización: *Incluido* sin monto (actual), con monto sumado al total, o con monto como bonificación.
 - [ ] Validar los precios de venta derivados del catálogo; sólo Shingrix y Gardasil vienen de Leucotec.
 
 **Producto**
 - [ ] **Login en `/cotizador`** restringido a correos de Leucotec. Hoy cualquiera con el enlace lo abre; no ve costos, pero podría sondear el semáforo.
 - [ ] El semáforo y el historial usan el **Sheet construido**, no la copia de Martin. Si Martin cambia un costo sólo en su copia, el semáforo no se entera. Unificar la fuente de costos.
 - [ ] El catálogo de `/cotizador` trae 21 productos; el Excel de Martin, 35. Faltan pediátricos, rotavirus y hexavalentes.
-- [ ] Etiqueta "Logística calculada" en `/cotizador`: renombrar a *Costo de operación de Leucotec (sale de tu margen)*.
 
 **Técnica**
 - [ ] Quitar "Margen real" del Sheet construido antes de compartirlo: revela el costo de compra.

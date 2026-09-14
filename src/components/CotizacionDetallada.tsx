@@ -10,8 +10,9 @@
 // el manejo de RPBI. Cada renglón suma a la propuesta de valor.
 //
 // Sobre los importes: se enumera todo siempre, pero sólo lleva precio lo que
-// de verdad se factura. Cuando Leucotec absorbe la operación —lo normal—
-// esas líneas dicen "Incluido": el cliente ve el alcance completo sin que se
+// de verdad se factura aparte. Lo normal es que la operación vaya dentro del
+// precio por dosis (Martin: "es costo y se cobra en conjunto con el costo de
+// vacuna"): esas líneas dicen "Incluido" y el cliente ve el alcance completo sin que se
 // expongan los costos internos.
 //
 // Todo lo que aparece aquí sale del cotizador de Martin. No se agregan
@@ -103,7 +104,7 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
   const productos = r.lineas.map((l) => l.producto);
   const cliente = cotizacion.cliente || 'su empresa';
 
-  /** Importe si se cobra; "Incluido" si Leucotec lo absorbe. */
+  /** Importe si se cobra aparte; "Incluido" si va dentro del precio por dosis. */
   const importe = (v: number) =>
     cobra ? dinero(v) : <span className="font-semibold text-brand-accent">Incluido</span>;
 
@@ -183,7 +184,7 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
           <>
             {' '}
             <strong className="text-brand-dark">
-              El servicio completo va incluido: se paga únicamente el biológico.
+              El precio por dosis ya incluye el servicio completo: no hay cargos adicionales.
             </strong>
           </>
         )}

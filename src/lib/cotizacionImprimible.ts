@@ -39,8 +39,8 @@ export interface CotizacionImprimible {
   lineas: LineaCotizacion[];
   sedes: Sede[];
   /**
-   * Si la operación se le cobra al cliente. Normalmente no: Leucotec la
-   * absorbe y la cotización enumera todo, pero como "Incluido".
+   * Si la operación se cobra como cargo aparte. Normalmente no: va dentro
+   * del precio por dosis y la cotización enumera todo como "Incluido".
    */
   cobrarLogistica: boolean;
   /**

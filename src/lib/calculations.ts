@@ -41,10 +41,10 @@ export interface ParametrosEmpresa {
   /**
    * Si la logística se le COBRA al cliente como línea aparte.
    *
-   * Leucotec normalmente la absorbe: su cotización al cliente es sólo el
-   * biológico, y la operación sale de su margen. Por eso arranca apagado.
-   * El costo se calcula siempre —es real— pero sólo entra al precio si se
-   * cobra.
+   * Normalmente no: la logística es costo y se cobra dentro del precio por
+   * dosis (así lo confirmó Martin, sep 2026). Por eso arranca apagado. El
+   * costo se calcula siempre y pesa en el margen; sólo se suma al total si
+   * se cobra por separado.
    */
   cobrarLogistica: boolean;
   /**

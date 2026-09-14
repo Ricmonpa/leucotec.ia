@@ -210,7 +210,7 @@ function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente
     e: Number(h.getRange('B47').getValue()) || 0,
     l: lineas,
     s: s,
-    cl: 0, // Leucotec absorbe la operacion: se enumera todo como "Incluido"
+    cl: 0, // la operacion va dentro del precio por dosis: se enumera como "Incluido"
     d: Number(h.getRange('B48').getValue()) || 0 // costo dia: solo lo usa la propuesta de ROI
   };
   var b64 = Utilities.base64EncodeWebSafe(JSON.stringify(carga), Utilities.Charset.UTF_8)
