@@ -24,17 +24,8 @@
 // —dias, enf, via, sede, hrs— se siguen leyendo.)
 // ---------------------------------------------------------------------------
 
-import { PRODUCTOS_POR_ENFERMEDAD } from './catalogoProductos';
+import { enfermedadDeProducto } from './catalogoProductos';
 import type { ParametrosEmpresa, ParametrosEnfermedad, Sede } from './calculations';
-
-/** Producto comercial → enfermedad a la que pertenece. */
-const ENFERMEDAD_DE_PRODUCTO: Record<string, string> = (() => {
-  const mapa: Record<string, string> = {};
-  for (const [enfermedad, productos] of Object.entries(PRODUCTOS_POR_ENFERMEDAD)) {
-    for (const p of productos) mapa[p.nombre.toLowerCase()] = enfermedad;
-  }
-  return mapa;
-})();
 
 export interface CotizacionRecibida {
   empresa: Partial<ParametrosEmpresa>;
@@ -130,7 +121,7 @@ export function leerCotizacionDeUrl(
   for (const parte of (p.get('v') ?? '').split(',')) {
     const [producto, personas, precio] = parte.split(':');
     if (!producto) continue;
-    const enfermedad = ENFERMEDAD_DE_PRODUCTO[producto.trim().toLowerCase()];
+    const enfermedad = enfermedadDeProducto(producto);
     if (!enfermedad) continue; // producto que no está en el catálogo: se ignora
     vacunas.push({
       enfermedad,

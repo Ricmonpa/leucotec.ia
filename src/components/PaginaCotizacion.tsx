@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { useEffect } from 'react';
-import { FileWarning, Printer } from 'lucide-react';
+import { FileWarning, Printer, TrendingUp } from 'lucide-react';
 import { CotizacionDetallada } from './CotizacionDetallada';
 import { leerCotizacionImprimible } from '../lib/cotizacionImprimible';
 
@@ -51,14 +51,27 @@ export function PaginaCotizacion() {
               Revisa los datos. Para guardarla en PDF, elige “Guardar como PDF” al imprimir.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="flex shrink-0 items-center gap-2 rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir cotización
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {/* La propuesta de retorno lee el mismo enlace: mismo folio, mismos
+                renglones. Se manda al cliente junto con la cotización. */}
+            <a
+              href={`/propuesta${window.location.search}`}
+              target="_blank"
+              rel="noopener"
+              className="flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2.5 text-sm font-semibold text-brand-dark transition-colors hover:bg-slate-50"
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Ver retorno de la inversión</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="flex shrink-0 items-center gap-2 rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+            >
+              <Printer className="h-4 w-4" />
+              <span className="hidden sm:inline">Imprimir cotización</span>
+            </button>
+          </div>
         </div>
       </div>
 

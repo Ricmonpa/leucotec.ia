@@ -10,7 +10,7 @@ import {
 import { aplicarCotizacion, leerCotizacionDeUrl } from '../lib/enlaceCotizacion';
 
 /** Valores iniciales del prospecto (demo). */
-const EMPRESA_INICIAL: ParametrosEmpresa = {
+export const EMPRESA_INICIAL: ParametrosEmpresa = {
   empresa: 'Grupo Bimbo',
   numEmpleados: 400,
   // Sueldo de ~$21,000/mes con carga social: (21000 / 21.7) * 1.35 ≈ 1300.
@@ -48,7 +48,7 @@ const EMPRESA_INICIAL: ParametrosEmpresa = {
  * Las tres primeras vienen activas por defecto: son el esquema clásico de
  * campaña en empresa. El resto se activa con un clic según el cliente.
  */
-const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
+export const ENFERMEDADES_INICIALES: ParametrosEnfermedad[] = [
   {
     nombre: 'Influenza',
     activa: true,

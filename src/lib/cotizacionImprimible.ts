@@ -43,6 +43,11 @@ export interface CotizacionImprimible {
    * absorbe y la cotización enumera todo, pero como "Incluido".
    */
   cobrarLogistica: boolean;
+  /**
+   * Lo que le cuesta a la empresa un día sin un empleado. No sale en la
+   * cotización: lo usa la propuesta de retorno. 0 si no se capturó.
+   */
+  costoDia?: number;
 }
 
 /** Folio con fecha y hora: único en la práctica y legible para el cliente. */
@@ -112,6 +117,7 @@ interface CargaUtil {
   // jornadas, transporte, comidas
   s?: [string, number, number, number, number, number, number, number][];
   cl?: number; // cobrar logística (1/0)
+  d?: number; // costo por día de ausencia de un empleado
 }
 
 function aBase64Url(texto: string): string {
@@ -150,6 +156,7 @@ export function codificarCotizacion(c: CotizacionImprimible): string {
       s.comidas,
     ]),
     cl: c.cobrarLogistica ? 1 : 0,
+    d: c.costoDia || 0,
   };
   return aBase64Url(JSON.stringify(carga));
 }
@@ -193,6 +200,7 @@ export function leerCotizacionImprimible(
       comidas: num(comidas),
     })),
     cobrarLogistica: carga.cl === 1,
+    costoDia: num(carga.d),
   };
 }
 
@@ -215,5 +223,6 @@ export function cotizacionDesdeSimulador(
       })),
     sedes: empresa.sedes,
     cobrarLogistica: empresa.cobrarLogistica,
+    costoDia: empresa.costoDiaEmpleado,
   };
 }

@@ -47,11 +47,12 @@ El vendedor tiene **dos puertas**, y ambas terminan en **la misma cotización im
 | **Sheet de Martin** (V10.4) | Vendedores que ya dominan el Excel | Su archivo de siempre, subido tal cual a Google Sheets, con un botón **IMPRIMIR COTIZACION** |
 | **Cotizador en línea** (`/cotizador`) | Vendedores en visita, desde el celular | Mismo orden y colores que el Excel, semáforo de margen, historial y botón de imprimir |
 
-Y una tercera herramienta, **frente al cliente**:
+Y dos herramientas **frente al cliente**:
 
 | Herramienta | Qué hace |
 |---|---|
-| **Simulador de ROI** (`/`) | Traduce la vacunación de "gasto médico" a "continuidad operativa": cuánto pierde la empresa por ausentismo, cuánto cuesta protegerse al año y cuál es el ahorro neto |
+| **Propuesta de retorno** (`/propuesta`) | El anexo de la cotización para un prospecto calificado. Recibe el mismo enlace (mismo folio, mismos renglones) y es de **sólo lectura**: su inversión es, al peso, el total de la cotización |
+| **Simulador de ROI** (`/`) | Versión editable para una fase posterior de captación de leads. Traduce la vacunación de "gasto médico" a "continuidad operativa": cuánto pierde la empresa por ausentismo, cuánto cuesta protegerse al año y cuál es el ahorro neto |
 
 ---
 
@@ -67,14 +68,17 @@ flowchart LR
     subgraph Publico["🌐 Público · Vercel"]
         CZ["/cotizador<br/>vendedores"]
         CT["/cotizacion<br/>documento imprimible"]
-        SIM["/<br/>simulador de ROI"]
+        PR["/propuesta<br/>retorno · sólo lectura"]
+        SIM["/<br/>simulador de ROI (leads)"]
     end
 
     SM -- "botón IMPRIMIR<br/>(solo precios de venta)" --> CT
     CZ -- "Imprimir cotización" --> CT
     CZ -- "producto, dosis, precio" --> SC
     SC -- "OK / REVISAR<br/>(nunca el costo)" --> CZ
-    SM -- "enlace al ROI" --> SIM
+    SM -- "VER RETORNO" --> PR
+    CZ -- "Ver retorno" --> PR
+    CT <-->|"mismo enlace,<br/>mismo folio"| PR
     SIM -- "PDF cierra con<br/>la cotización" --> CT
 ```
 
@@ -108,6 +112,7 @@ Para probar la cotización impresa sin pasar por una hoja, abre `/cotizacion?c=�
 | `/` | `Simulator` (vía `EntradaSimulador`) | ✅ nombre y correo | Prospectos y clientes |
 | `/cotizador` | `Cotizador` | — | Vendedores de Leucotec |
 | `/cotizacion?c=…` | `PaginaCotizacion` | — | Vendedores (lo imprimen para el cliente) |
+| `/propuesta?c=…` | `PaginaPropuesta` | — | Prospecto calificado (anexo de la cotización) |
 | `/guia` | `public/guia/index.html` | — | Guía de venta estática |
 | `/n3` | `public/n3/index.html` | — | Diapositiva del mapa de herramientas |
 
@@ -123,6 +128,7 @@ src/
 ├── lib/
 │   ├── calculations.ts            ⚙️  Motor puro: ROI, amortización, logística multi-sede
 │   ├── cotizacionImprimible.ts    📄 Modelo de la cotización + codificación del enlace
+│   ├── propuestaRoi.ts            📈 Cotización → simulación de ROI que cuadra al peso
 │   ├── cotizador.ts               📡 Envío al Sheet privado y lectura del semáforo
 │   ├── enlaceCotizacion.ts        🔗 Enlace Sheet → simulador de ROI
 │   ├── catalogoProductos.ts       💉 Productos y PRECIOS DE VENTA (nunca costos)
@@ -134,6 +140,7 @@ src/
 └── components/
     ├── Cotizador.tsx              /cotizador
     ├── PaginaCotizacion.tsx       /cotizacion
+    ├── PaginaPropuesta.tsx        /propuesta (sólo lectura)
     ├── CotizacionDetallada.tsx    El documento. Un solo lugar para todos los renglones
     ├── SedesCampana.tsx           Captura de hasta 4 sedes (compartido)
     ├── ui/Field.tsx               Campo numérico que nunca emite NaN
@@ -254,11 +261,22 @@ JSON codificado en base64 URL-safe. Se descartó un formato con separadores porq
   "s": [["CDMX", 30, 0, 0, 1, 1, 800, 0]],
   //      destino, dosis, foránea(1/0), jornada larga(1/0),
   //      enfermeras/día, jornadas, transporte, comidas
-  "cl": 0                             // cobrar logística (1/0)
+  "cl": 0,                            // cobrar logística (1/0)
+  "d": 1300                           // costo de un día de ausencia (sólo lo usa /propuesta)
 }
 ```
 
 Modelo y codificación: `src/lib/cotizacionImprimible.ts`.
+
+### Propuesta de retorno — `/propuesta?c=<base64url>`
+
+**El mismo parámetro `c` que la cotización.** Para pasar de una a otra basta cambiar la ruta. `src/lib/propuestaRoi.ts` convierte la cotización en una simulación:
+
+- Cada renglón se asigna a su enfermedad con `enfermedadDeProducto` (sin distinguir acentos: la hoja escribe "solo A" y el catálogo "sólo A"). Los renglones de la misma enfermedad se juntan.
+- `% en riesgo = dosis / plantilla` y `precio = importe / dosis`, para que el motor reconstruya exactamente las dosis y el importe. La plantilla nunca es menor a la mayor cantidad de dosis.
+- Un producto sin modelo de riesgo entra **sólo como inversión**, sin ahorro. Es la opción conservadora.
+- La página compara `resultado.inversionTotal` contra el total de la cotización y avisa si no cuadran.
+- Si `d` viene en 0 se usa la referencia de $1,300 y la página lo dice.
 
 ### Simulador de ROI — `/?…`
 

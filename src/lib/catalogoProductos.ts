@@ -77,3 +77,19 @@ export const PRODUCTOS_POR_ENFERMEDAD: Record<string, Producto[]> = {
 export function productosDe(enfermedad: string): Producto[] {
   return PRODUCTOS_POR_ENFERMEDAD[enfermedad] ?? [];
 }
+
+/** Sin acentos ni mayúsculas: la hoja de Martin escribe "solo A", aquí "sólo A". */
+const normalizar = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
+/** Producto comercial → enfermedad a la que pertenece. */
+const ENFERMEDAD_DE_PRODUCTO: Record<string, string> = Object.fromEntries(
+  Object.entries(PRODUCTOS_POR_ENFERMEDAD).flatMap(([enfermedad, productos]) =>
+    productos.map((p) => [normalizar(p.nombre), enfermedad]),
+  ),
+);
+
+/** La enfermedad de un producto, o undefined si no está en el catálogo. */
+export function enfermedadDeProducto(producto: string): string | undefined {
+  return ENFERMEDAD_DE_PRODUCTO[normalizar(producto)];
+}

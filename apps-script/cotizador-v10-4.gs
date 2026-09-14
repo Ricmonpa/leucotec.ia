@@ -7,7 +7,8 @@
 //
 // Lo único que se agrega es un bloque DEBAJO de su rejilla (filas 45 a 53):
 // los datos del cliente que su archivo no tenía, el botón IMPRIMIR COTIZACION
-// y el enlace al simulador de ROI. Su área de trabajo, de la fila 1 a la 42,
+// y el botón VER RETORNO DE LA INVERSION, que abre la propuesta de ROI de solo
+// lectura con los mismos datos y el mismo folio. Su área de trabajo, de la fila 1 a la 42,
 // queda intacta.
 //
 // Hoja:   1B6nQ9KAyXIE-rgAYEoiA7LrTcgzIfwoI0rRAEW9JXpY
@@ -209,7 +210,8 @@ function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente
     e: Number(h.getRange('B47').getValue()) || 0,
     l: lineas,
     s: s,
-    cl: 0 // Leucotec absorbe la operacion: se enumera todo como "Incluido"
+    cl: 0, // Leucotec absorbe la operacion: se enumera todo como "Incluido"
+    d: Number(h.getRange('B48').getValue()) || 0 // costo dia: solo lo usa la propuesta de ROI
   };
   var b64 = Utilities.base64EncodeWebSafe(JSON.stringify(carga), Utilities.Charset.UTF_8)
     .replace(/=+$/, '');
@@ -256,9 +258,18 @@ function prepararEnlace() {
     .setFontSize(13).setHorizontalAlignment('center').setVerticalAlignment('middle');
   h.setRowHeight(50, 36);
 
-  h.getRange('A52').setValue('SIMULADOR DE ROI').setFontWeight('bold').setFontColor('#666666');
+  // La propuesta de retorno lee el MISMO enlace que la cotizacion: mismo folio,
+  // mismos renglones, y su inversion es el total de la cotizacion al peso. Es
+  // de solo lectura: el cliente no puede acomodar los numeros. (El simulador
+  // editable de ENLACEROI queda para la fase de captacion de leads.)
+  h.getRange('A52').setValue('RETORNO DE LA INVERSION').setFontWeight('bold');
   h.getRange('B52:F52').merge();
-  h.getRange('B52').setFormula('=ENLACEROI(' + deps + ')').setFontColor('#1155CC').setWrap(true);
+  h.getRange('B52')
+    .setFormula('=LET(u;COTIZACIONURL(' + deps + ');' +
+      'IF(u="";"";HYPERLINK(SUBSTITUTE(u;"/cotizacion?";"/propuesta?");"VER RETORNO DE LA INVERSION")))')
+    .setBackground('#1F2A44').setFontColor('#FFFFFF').setFontWeight('bold')
+    .setFontSize(11).setHorizontalAlignment('center').setVerticalAlignment('middle');
+  h.setRowHeight(52, 30);
 
   h.getRange('A53').setValue(
     'Las celdas verdes se capturan. Lo demas se calcula solo y esta bloqueado.'

@@ -24,6 +24,7 @@ import {
   Printer,
   ShieldCheck,
   Syringe,
+  TrendingUp,
   Truck,
   UserRound,
   X,
@@ -56,6 +57,8 @@ interface Borrador {
   vendedor: string;
   cliente: string;
   empleados: number;
+  /** Costo de un día sin el empleado. Lo usa la propuesta de retorno. */
+  costoDia?: number;
   lineas: LineaCotizacion[];
   sedes: Sede[];
 }
@@ -180,6 +183,7 @@ export function Cotizador() {
       lineas: b.lineas,
       sedes: b.sedes,
       cobrarLogistica: false,
+      costoDia: b.costoDia || 0,
     }),
     [b, folio],
   );
@@ -217,6 +221,10 @@ export function Cotizador() {
 
   function imprimir() {
     window.open(`/cotizacion?c=${codificarCotizacion(cotizacion)}`, '_blank', 'noopener');
+  }
+
+  function verRetorno() {
+    window.open(`/propuesta?c=${codificarCotizacion(cotizacion)}`, '_blank', 'noopener');
   }
 
   function nueva() {
@@ -278,13 +286,25 @@ export function Cotizador() {
                 />
               </div>
               <Field
-                    verde
+                verde
                 type="number"
                 label="Plantilla"
                 min={0}
                 value={b.empleados}
                 onChange={(v) => cambiar((x) => ({ ...x, empleados: v }))}
               />
+              <div className="sm:col-span-3">
+                <Field
+                  verde
+                  type="number"
+                  label="Costo de un día de ausencia"
+                  prefix="$"
+                  min={0}
+                  value={b.costoDia ?? 0}
+                  hint="Sueldo diario con carga social. Sólo lo usa la propuesta de retorno; si lo dejas en 0 se usa una referencia de $1,300."
+                  onChange={(v) => cambiar((x) => ({ ...x, costoDia: v }))}
+                />
+              </div>
               <div className="sm:col-span-3">
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Tu nombre
@@ -495,6 +515,15 @@ export function Cotizador() {
             >
               <Printer className="h-5 w-5" />
               Imprimir cotización
+            </button>
+            <button
+              type="button"
+              onClick={verRetorno}
+              disabled={!listaParaImprimir}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-brand-dark bg-white py-3.5 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <TrendingUp className="h-5 w-5" />
+              Ver retorno de la inversión
             </button>
             {!listaParaImprimir && (
               <p className="text-center text-xs text-slate-400">Elige al menos una vacuna con dosis.</p>

@@ -9,6 +9,7 @@ import { AnalysisSequence } from './components/AnalysisSequence';
 import { Header } from './components/Header';
 import { CotizacionDetallada } from './components/CotizacionDetallada';
 import { PaginaCotizacion } from './components/PaginaCotizacion';
+import { PaginaPropuesta } from './components/PaginaPropuesta';
 import { Cotizador } from './components/Cotizador';
 import { cotizacionDesdeSimulador } from './lib/cotizacionImprimible';
 import { InputPanel } from './components/InputPanel';
@@ -33,6 +34,8 @@ function App() {
   // entrada, que es para prospectos.
   if (ruta() === '/cotizador') return <Cotizador />;
   if (ruta() === '/cotizacion') return <PaginaCotizacion />;
+  // La propuesta la abre un prospecto calificado: tampoco pide registro.
+  if (ruta() === '/propuesta') return <PaginaPropuesta />;
   return <EntradaSimulador />;
 }
 
