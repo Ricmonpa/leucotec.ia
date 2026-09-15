@@ -176,6 +176,7 @@ public/
 Detalles que ya costaron bugs:
 
 - **Hasta 4 sedes que operan al mismo tiempo.** Cada una lleva su propio equipo: los días **no se suman** entre sedes.
+- **Comirnaty en cajas de 10:** se puede capturar en dosis o en cajas (hoja: columna UNIDAD `I5:I12`; web: botón *Cajas de 10*). La caja multiplica dosis y costo por 10 y divide el precio, así que 2 cajas a $9,500 y 20 dosis a $950 dan el mismo importe, costo, insumos y semáforo. La cotización siempre sale en dosis.
 - **Reparto de dosis:** la primera sede con dosis en 0 absorbe las que no se asignaron a las demás.
 - **La logística es costo y se cobra dentro del precio por dosis** (confirmado por Martin, 14 sep 2026). No va como cargo aparte: el gran total del Excel (H17) suma sólo vacunas, y la logística entra al costo (F17) para que el semáforo verifique que el precio la cubre. En la cotización, los renglones de operación dicen **Incluido** y se aclara que no hay cargos adicionales.
 
