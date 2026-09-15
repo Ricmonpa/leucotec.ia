@@ -99,6 +99,7 @@ npm run dev        # http://localhost:5173
 npm run build      # typecheck + build de producción en ./dist
 npm run preview    # sirve el build localmente
 npm run lint
+npm test           # motor de logística contra el Excel de Martin
 ```
 
 Para probar la cotización impresa sin pasar por una hoja, abre `/cotizacion?c=…` con un enlace generado desde `/cotizador` (botón **Imprimir cotización**).

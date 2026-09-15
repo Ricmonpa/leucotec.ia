@@ -20,7 +20,7 @@ export const EMPRESA_INICIAL: ParametrosEmpresa = {
   aplicarBeneficioFiscal: true,
   pctDeducible: 0.53, // Art. 28 fr. XXX LISR: 53% si se mantienen prestaciones
   tasaISR: 0.3, // ISR corporativo en México
-  // Leucotec cotiza sólo el biológico; la operación sale de su margen.
+  // La logística no va como cargo aparte: se cobra dentro del precio por dosis.
   cobrarLogistica: false,
   // Una sola sede de arranque: es el caso normal. Se agregan más con un clic,
   // hasta cuatro, igual que en su cotizador.
