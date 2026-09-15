@@ -340,9 +340,13 @@ function ocultarInternas() {
 function aplicarRevisionDosis() {
   var h = hojaCotizador();
   var suma = 'SUMIF(G22:G25;"<>NINGUNA";H22:H25)';
+  // Una sede marcada LOCAL o FORANEO sin dosis tambien es descuadre: la suma
+  // puede cuadrar y aun asi quedar una sede activa olvidada (sep 2026).
+  var sinDosis = 'SUMPRODUCT((G22:G25<>"NINGUNA")*(G22:G25<>"")*(H22:H25<=0))>0';
+  var descuadre = 'OR(' + suma + '<>C13;' + sinDosis + ')';
 
   h.getRange('I17').setFormula(
-    '=IF(' + suma + '<>C13;"revisar dosis por sede";IF((H17-F17)/H17>I2;"ok";"revisar precios"))'
+    '=IF(' + descuadre + ';"revisar dosis por sede";IF((H17-F17)/H17>I2;"ok";"revisar precios"))'
   );
 
   // Las celdas de dosis por sede se pintan de rojo mientras no cuadren, para
@@ -352,7 +356,7 @@ function aplicarRevisionDosis() {
     return !r.getRanges().some(function (x) { return x.getA1Notation() === 'H22:H25'; });
   });
   reglas.push(SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=' + suma.replace(/(G|H)(2[25])/g, '$$$1$$$2') + '<>$C$13')
+    .whenFormulaSatisfied('=' + descuadre.replace(/(G|H)(2[25])/g, '$$$1$$$2').replace('C13', '$C$13'))
     .setBackground('#F4CCCC').setFontColor('#990000')
     .setRanges([rango])
     .build());
