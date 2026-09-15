@@ -383,7 +383,7 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
             <tr>
               <td className="px-3 py-1.5 text-slate-500">Servicio de aplicación, insumos y RPBI</td>
               <td className={`px-3 py-1.5 ${der}`}>
-                {cobra ? dinero(r.logistica.total) : <span className="font-semibold text-brand-accent">Sin costo</span>}
+                {cobra ? dinero(r.logistica.total) : <span className="font-semibold text-brand-accent">Incluido en el precio por dosis</span>}
               </td>
             </tr>
             <tr className="bg-brand-dark text-white">

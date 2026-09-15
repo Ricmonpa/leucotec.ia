@@ -10,7 +10,7 @@
 // cifras— para que el vendedor sepa si el precio aguanta sin sacar el celular.
 // ---------------------------------------------------------------------------
 
-import type { ParametrosEmpresa, ResultadoSimulacion } from './calculations';
+import { descuadreDosis, type ParametrosEmpresa, type ResultadoSimulacion } from './calculations';
 import type { ParametrosEnfermedad } from './calculations';
 import { resumirCotizacion, type CotizacionImprimible } from './cotizacionImprimible';
 
@@ -21,7 +21,12 @@ import { resumirCotizacion, type CotizacionImprimible } from './cotizacionImprim
 const COTIZADOR_URL: string =
   'https://script.google.com/macros/s/AKfycbzzc92nUTXnWFJeBLEv2l3knTHRStCxDP7v9JJ-kKAWRldMeErxd3cjPJRqGgSKhtY44Q/exec';
 
-export type EstadoMargen = 'OK' | 'REVISAR' | 'SIN_CONEXION';
+/**
+ * REVISAR_DOSIS no viene del Sheet: se decide aquí, antes de enviar. Si las
+ * dosis por sede no cuadran, la logística está mal y el margen no significa
+ * nada, así que ni se consulta ni se guarda en el historial.
+ */
+export type EstadoMargen = 'OK' | 'REVISAR' | 'REVISAR_DOSIS' | 'SIN_CONEXION';
 
 export interface EnvioCotizacion {
   folio: string;
@@ -64,6 +69,9 @@ export async function enviarCotizacion(
 
   if (!cotizadorConfigurado()) {
     return { folio, estado: 'SIN_CONEXION' };
+  }
+  if (descuadreDosis(resultado.logistica)) {
+    return { folio, estado: 'REVISAR_DOSIS' };
   }
 
   const activas = enfermedades.filter((e) => e.activa);
@@ -139,6 +147,7 @@ export async function revisarMargenCotizacion(
   if (!cotizadorConfigurado()) return { folio, estado: 'SIN_CONEXION' };
 
   const r = resumirCotizacion(cotizacion);
+  if (descuadreDosis(r.logistica)) return { folio, estado: 'REVISAR_DOSIS' };
 
   try {
     const respuesta = await fetch(COTIZADOR_URL, {

@@ -32,7 +32,7 @@ import {
 import { Field } from './ui/Field';
 import { SedesCampana } from './SedesCampana';
 import { PRODUCTOS_POR_ENFERMEDAD } from '../lib/catalogoProductos';
-import { formatNumber, sedeNueva, type Sede } from '../lib/calculations';
+import { descuadreDosis, formatNumber, sedeNueva, type Sede } from '../lib/calculations';
 import {
   codificarCotizacion,
   nuevoFolio,
@@ -189,6 +189,9 @@ export function Cotizador() {
   );
   const r = useMemo(() => resumirCotizacion(cotizacion), [cotizacion]);
   const listaParaImprimir = r.lineas.length > 0;
+  // Con las dosis por sede descuadradas la logística está mal calculada: el
+  // semáforo no se consulta, igual que en la hoja de Martin.
+  const descuadre = descuadreDosis(r.logistica);
 
   const setLinea = <K extends keyof LineaCotizacion>(i: number, campo: K, valor: LineaCotizacion[K]) =>
     cambiar((x) => ({
@@ -471,22 +474,35 @@ export function Cotizador() {
                 Margen
               </p>
               <div className="mt-3">
-                {estado === 'OK' && (
+                {(descuadre || estado === 'REVISAR_DOSIS') && (
+                  <div className="rounded-lg bg-red-50 px-3 py-2.5 text-brand-primary">
+                    <p className="flex items-center gap-2 text-sm font-bold">
+                      <AlertTriangle className="h-5 w-5" /> revisar dosis por sede
+                    </p>
+                    <p className="mt-1 text-[11px] leading-snug">
+                      {descuadre === 'sede-sin-dosis'
+                        ? 'Hay una sede sin dosis. Asígnale dosis o quítala.'
+                        : 'Las dosis de las sedes no suman el total de la campaña.'}{' '}
+                      Mientras no cuadren, el margen no se puede revisar.
+                    </p>
+                  </div>
+                )}
+                {!descuadre && estado === 'OK' && (
                   <p className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
                     <CheckCircle2 className="h-5 w-5" /> ok · el precio aguanta
                   </p>
                 )}
-                {estado === 'REVISAR' && (
+                {!descuadre && estado === 'REVISAR' && (
                   <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm font-bold text-brand-primary">
                     <AlertTriangle className="h-5 w-5" /> revisar precios
                   </p>
                 )}
-                {estado === 'SIN_CONEXION' && (
+                {!descuadre && estado === 'SIN_CONEXION' && (
                   <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-700">
                     No se pudo consultar el cotizador de Leucotec. Revisa tu conexión e intenta otra vez.
                   </p>
                 )}
-                {estado === null && (
+                {!descuadre && estado === null && (
                   <p className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
                     <CircleDashed className="h-4 w-4" /> Sin revisar con los precios actuales
                   </p>
@@ -495,7 +511,7 @@ export function Cotizador() {
               <button
                 type="button"
                 onClick={revisar}
-                disabled={!listaParaImprimir || revisando}
+                disabled={!listaParaImprimir || revisando || !!descuadre}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-brand-dark py-2.5 text-sm font-bold text-brand-dark transition-colors hover:bg-brand-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {revisando ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}

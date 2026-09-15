@@ -364,6 +364,24 @@ export interface CostoLogistica {
   total: number;
 }
 
+export type DescuadreDosis = 'faltan' | 'sobran' | 'sede-sin-dosis';
+
+/**
+ * Revisa que el reparto de dosis entre sedes cuadre con la campaña.
+ *
+ * Es la misma regla que el semáforo de la hoja de Martin (I17): si las sedes
+ * no suman el total, o si hay una sede activa sin dosis, la logística está mal
+ * calculada y ningún semáforo de margen significa nada. Con dosis de menos la
+ * logística sale baja y el margen puede dar "ok" en falso.
+ */
+export function descuadreDosis(l: CostoLogistica): DescuadreDosis | null {
+  if (l.dosisTotales <= 0) return null;
+  if (l.dosisAsignadas < l.dosisTotales) return 'faltan';
+  if (l.dosisAsignadas > l.dosisTotales) return 'sobran';
+  if (l.sedes.some((s) => s.dosis <= 0)) return 'sede-sin-dosis';
+  return null;
+}
+
 /** Costo de un día completo de inactividad de un empleado. */
 export function costoDia(empresa: ParametrosEmpresa): number {
   return empresa.costoDiaEmpleado;

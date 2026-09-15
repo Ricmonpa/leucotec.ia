@@ -25,7 +25,7 @@ export function Header({
   const colorSemaforo =
     estadoMargen === 'OK'
       ? 'bg-emerald-500'
-      : estadoMargen === 'REVISAR'
+      : estadoMargen === 'REVISAR' || estadoMargen === 'REVISAR_DOSIS'
         ? 'bg-brand-primary'
         : 'bg-slate-300';
   return (

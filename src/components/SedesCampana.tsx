@@ -184,6 +184,19 @@ export function SedesCampana({
       {/* El reparto tiene que cuadrar con la campaña. Si falta, alguien se
           queda sin vacuna; si sobra, se está cobrando logística de dosis que
           no existen. Las dos descuadran el margen. */}
+      {/* Una sede capturada sin dosis tampoco cuadra: carga enfermera y traslado
+          a un lugar donde no se vacuna a nadie. */}
+      {logistica.dosisTotales > 0 &&
+        logistica.dosisAsignadas === logistica.dosisTotales &&
+        logistica.sedes.some((s) => s.dosis <= 0) && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-700">
+            {logistica.sedes
+              .map((s, i) => (s.dosis <= 0 ? s.destino || `Sede ${i + 1}` : null))
+              .filter(Boolean)
+              .join(', ')}{' '}
+            no tiene dosis. Asígnale dosis o quítala.
+          </p>
+        )}
       {logistica.dosisAsignadas !== logistica.dosisTotales && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-700">
           {logistica.dosisAsignadas < logistica.dosisTotales ? (
