@@ -462,7 +462,13 @@ function aplicarAjustesAprobados() {
   }
   h.setConditionalFormatRules(reglas);
 
+  // --- 4. Costos e Insumos protegidas (ocultar no es un candado) ---------
+  protegerInternas();
+
   SpreadsheetApp.flush();
+  Logger.log('Internas protegidas: ' + ['Costos', 'Insumos'].map(function (n) {
+    return n + ' ' + libro.getSheetByName(n).getProtections(SpreadsheetApp.ProtectionType.SHEET).length;
+  }).join(', '));
   Logger.log('Catalogo hasta fila ' + ultima + '. Listas: I2 ' +
     listaDe(h.getRange('I2')) + ' | J22 ' + listaDe(h.getRange('J22')) + ' | G22 ' + listaDe(h.getRange('G22')));
 }
@@ -505,7 +511,6 @@ function conectar() {
   aplicarAjustesAprobados();
   ocultarInternas();
   protegerHoja();
-  protegerInternas();
   SpreadsheetApp.flush();
   libro.toast('Conectado. Pueden editar todo: ' + EDITORES.join(', '), 'Leucotec', 8);
 }
