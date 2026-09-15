@@ -340,6 +340,6 @@ npm run build                           # build limpio
 
 **Técnica**
 - [ ] Quitar "Margen real" del Sheet construido antes de compartirlo: revela el costo de compra.
-- [ ] Prueba automática del caso de referencia sobre `calculations.ts`.
+- [x] Prueba automática del motor sobre `calculations.ts` (`npm test`).
 - [ ] `npm run lint` reporta 4 errores preexistentes en `LeadGate.tsx` (`no-useless-escape`).
 - [ ] `MaintenancePage.tsx` no se usa en ninguna ruta.
