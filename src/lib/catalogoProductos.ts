@@ -93,3 +93,19 @@ const ENFERMEDAD_DE_PRODUCTO: Record<string, string> = Object.fromEntries(
 export function enfermedadDeProducto(producto: string): string | undefined {
   return ENFERMEDAD_DE_PRODUCTO[normalizar(producto)];
 }
+
+/**
+ * Productos que Leucotec compra por caja. El vendedor puede cotizarlos en
+ * dosis o en cajas, y las dos capturas tienen que dar exactamente lo mismo:
+ * 2 cajas a $9,500 = 20 dosis a $950. Martin, sep 2026: por ahora sólo
+ * Comirnaty, en cajas de 10.
+ */
+const DOSIS_POR_CAJA: Record<string, number> = {
+  'Comirnaty XBB adulto': 10,
+  'Comirnaty XBB pediátrico': 10,
+};
+
+/** Dosis por caja del producto; 1 si no se vende por caja. */
+export function dosisPorCaja(producto: string): number {
+  return DOSIS_POR_CAJA[producto] ?? 1;
+}

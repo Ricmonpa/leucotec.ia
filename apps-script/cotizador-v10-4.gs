@@ -96,12 +96,14 @@ function nombreCorto(descripcion) {
 function ENLACEROI(dosis, precio, logistica, cliente, empleados, costoDia) {
   var h = hojaCotizador();
 
-  var filas = h.getRange('B5:H12').getValues();
+  var filas = h.getRange('B5:J12').getValues();
   var partes = [];
   for (var f = 0; f < filas.length; f++) {
     var d = String(filas[f][0] || '').trim();
-    var dos = Number(filas[f][1]) || 0;
-    var pre = Number(filas[f][5]) || 0;
+    // Dosis reales (J) y precio por dosis: 2 cajas a $9,500 viajan como
+    // 20 dosis a $950, igual que si se hubieran capturado en dosis.
+    var dos = Number(filas[f][8]) || 0;
+    var pre = dos > 0 ? (Number(filas[f][6]) || 0) / dos : 0;
     if (!d || d === 'NINGUNA' || dos <= 0) continue;
     var corto = nombreCorto(d);
     if (!corto) continue;
@@ -169,12 +171,14 @@ function ENLACEROI(dosis, precio, logistica, cliente, empleados, costoDia) {
 function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente) {
   var h = hojaCotizador();
 
-  var filas = h.getRange('B5:H12').getValues();
+  var filas = h.getRange('B5:J12').getValues();
   var lineas = [];
   for (var f = 0; f < filas.length; f++) {
     var d = String(filas[f][0] || '').trim();
-    var dos = Number(filas[f][1]) || 0;
-    var pre = Number(filas[f][5]) || 0;
+    // Dosis reales (J) y precio por dosis: 2 cajas a $9,500 viajan como
+    // 20 dosis a $950, igual que si se hubieran capturado en dosis.
+    var dos = Number(filas[f][8]) || 0;
+    var pre = dos > 0 ? (Number(filas[f][6]) || 0) / dos : 0;
     if (!d || d === 'NINGUNA' || dos <= 0) continue;
     lineas.push([nombreCorto(d) || d, dos, pre]);
   }
@@ -247,7 +251,7 @@ function prepararEnlace() {
     .setBorder(true, true, true, true, true, true);
 
   // El boton que importa: la cotizacion es el producto final del proceso.
-  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B46:B48';
+  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B46:B48;I5:I12';
   h.getRange('A50').setValue('COTIZACION').setFontWeight('bold');
   h.getRange('B50:F50').merge();
   h.getRange('B50')
@@ -295,6 +299,7 @@ function protegerHoja() {
     h.getRange('G3'),      // recargo por pago con tarjeta
     h.getRange('B5:C12'),  // vacuna y dosis
     h.getRange('G5:G12'),  // precio unitario
+    h.getRange('I5:I12'),  // unidad: DOSIS o CAJA 10
     h.getRange('G22:J25'), // sede, dosis, destino y horas
     h.getRange('H30:I33'), // enfermeras por dia y jornadas
     h.getRange('G38:G41'), // transporte
@@ -345,8 +350,9 @@ function aplicarRevisionDosis() {
   var sinDosis = 'SUMPRODUCT((G22:G25<>"NINGUNA")*(G22:G25<>"")*(H22:H25<=0))>0';
   var descuadre = 'OR(' + suma + '<>C13;' + sinDosis + ')';
 
+  var unidadMal = 'SUMPRODUCT((I5:I12="CAJA 10")*NOT(ISNUMBER(SEARCH("COMIRNATY Omicron XBB";B5:B12))))>0';
   h.getRange('I17').setFormula(
-    '=IF(' + descuadre + ';"revisar dosis por sede";IF((H17-F17)/H17>I2;"ok";"revisar precios"))'
+    '=IF(' + unidadMal + ';"revisar unidad";IF(' + descuadre + ';"revisar dosis por sede";IF((H17-F17)/H17>I2;"ok";"revisar precios")))'
   );
 
   // Las celdas de dosis por sede se pintan de rojo mientras no cuadren, para
@@ -403,6 +409,18 @@ function repararCostosFaltantes() {
  */
 var FILAS_EXTRA_CATALOGO = 60;
 
+// Comirnaty se compra en cajas de 10 dosis. El vendedor puede capturarla en
+// DOSIS o en CAJA 10 y la hoja debe dar exactamente lo mismo: 2 cajas a
+// $9,500 = 20 dosis a $950. Aprobado por Martin (sep 2026). Solo aplica a las
+// presentaciones "COMIRNATY Omicron XBB" (caja con 10 viales de 1 dosis).
+var UNIDAD_CAJA = 'CAJA 10';
+var PRODUCTO_CON_CAJA = 'COMIRNATY Omicron XBB';
+
+/** Factor de la fila f: 10 si esa fila se capturo en cajas de Comirnaty. */
+function factorCaja(f) {
+  return 'IF(AND($I' + f + '="' + UNIDAD_CAJA + '";ISNUMBER(SEARCH("' + PRODUCTO_CON_CAJA + '";$B' + f + ')));10;1)';
+}
+
 function aplicarAjustesAprobados() {
   var libro = SpreadsheetApp.getActiveSpreadsheet();
   var h = hojaCotizador();
@@ -419,7 +437,7 @@ function aplicarAjustesAprobados() {
   }
   for (var f = 5; f <= 12; f++) {
     h.getRange('D' + f).setFormula(
-      '=IF(OR(B' + f + '="";B' + f + '="NINGUNA");0;IFERROR(VLOOKUP(B' + f + ';Costos!B$3:C$' + ultima + ';2;FALSE);"FALTA COSTO"))'
+      '=IF(OR(B' + f + '="";B' + f + '="NINGUNA");0;IFERROR(VLOOKUP(B' + f + ';Costos!B$3:C$' + ultima + ';2;FALSE)*' + factorCaja(f) + ';"FALTA COSTO"))'
     );
   }
   var lista = costos.getRange('B3:B' + ultima);
@@ -473,6 +491,51 @@ function aplicarAjustesAprobados() {
     listaDe(h.getRange('I2')) + ' | J22 ' + listaDe(h.getRange('J22')) + ' | G22 ' + listaDe(h.getRange('G22')));
 }
 
+/**
+ * Columna UNIDAD (I5:I12) y DOSIS REALES (J5:J12).
+ *
+ * - I: el vendedor elige DOSIS o CAJA 10. Verde, como toda captura.
+ * - J: dosis que de verdad se aplican (cajas x 10). Calculada.
+ * - C13 suma dosis reales: de ahi salen las dosis por sede, los insumos y el
+ *   descuadre. D5:D12 ya multiplica el costo por el factor (ver arriba).
+ * - Precio total (H) y costo total (F) no cambian: unidades x precio y
+ *   unidades x costo por unidad. Por eso 2 cajas y 20 dosis dan lo mismo.
+ * Idempotente.
+ */
+function aplicarUnidadCaja() {
+  var h = hojaCotizador();
+
+  h.getRange('H4').copyTo(h.getRange('I4:J4'), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  h.getRange('I4:J4').setValues([['UNIDAD', 'DOSIS REALES']]);
+
+  var unidad = h.getRange('I5:I12');
+  var actuales = unidad.getValues();
+  unidad.setValues(actuales.map(function (r) { return [r[0] === UNIDAD_CAJA ? UNIDAD_CAJA : 'DOSIS']; }));
+  unidad.setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList(['DOSIS', UNIDAD_CAJA], true).setAllowInvalid(false).build());
+  unidad.setBackground(VERDE).setHorizontalAlignment('center')
+    .setBorder(true, true, true, true, true, true);
+
+  for (var f = 5; f <= 12; f++) {
+    h.getRange('J' + f).setFormula('=C' + f + '*' + factorCaja(f));
+  }
+  h.getRange('J5:J12').setHorizontalAlignment('center').setFontColor('#666666')
+    .setBorder(true, true, true, true, true, true);
+
+  h.getRange('C13').setFormula('=SUM(J5:J12)');
+
+  // CAJA 10 en un producto que no se vende por caja: rojo, y el semaforo
+  // (aplicarRevisionDosis) dice "revisar unidad".
+  var reglas = h.getConditionalFormatRules().filter(function (regla) {
+    return !regla.getRanges().some(function (x) { return x.getA1Notation() === 'I5:I12'; });
+  });
+  reglas.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=AND($I5="' + UNIDAD_CAJA + '";NOT(ISNUMBER(SEARCH("' + PRODUCTO_CON_CAJA + '";$B5))))')
+    .setBackground('#F4CCCC').setFontColor('#990000')
+    .setRanges([unidad]).build());
+  h.setConditionalFormatRules(reglas);
+}
+
 /** A que rango apunta la lista desplegable de una celda (para verificar). */
 function listaDe(celda) {
   var dv = celda.getDataValidation();
@@ -506,9 +569,10 @@ function protegerInternas() {
 function conectar() {
   var libro = SpreadsheetApp.getActiveSpreadsheet();
   prepararEnlace();
-  aplicarRevisionDosis();
   repararCostosFaltantes();
   aplicarAjustesAprobados();
+  aplicarUnidadCaja();
+  aplicarRevisionDosis();
   ocultarInternas();
   protegerHoja();
   SpreadsheetApp.flush();

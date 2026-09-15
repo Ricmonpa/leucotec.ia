@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { Field } from './ui/Field';
 import { SedesCampana } from './SedesCampana';
-import { PRODUCTOS_POR_ENFERMEDAD } from '../lib/catalogoProductos';
+import { PRODUCTOS_POR_ENFERMEDAD, dosisPorCaja } from '../lib/catalogoProductos';
 import { descuadreDosis, formatNumber, sedeNueva, type Sede } from '../lib/calculations';
 import {
   codificarCotizacion,
@@ -59,11 +59,28 @@ interface Borrador {
   empleados: number;
   /** Costo de un día sin el empleado. Lo usa la propuesta de retorno. */
   costoDia?: number;
-  lineas: LineaCotizacion[];
+  lineas: LineaCaptura[];
   sedes: Sede[];
 }
 
-const lineaVacia = (): LineaCotizacion => ({ producto: '', dosis: 0, precio: 0 });
+/**
+ * Un renglón tal como lo capturó el vendedor. Si `caja` está prendido,
+ * `dosis` son cajas y `precio` es por caja; la cotización siempre sale en
+ * dosis (ver `enDosis`).
+ */
+type LineaCaptura = LineaCotizacion & { caja?: boolean };
+
+/**
+ * Convierte la captura a dosis. 2 cajas de 10 a $9,500 salen como 20 dosis a
+ * $950: el importe, el costo, los insumos y el semáforo quedan idénticos a
+ * haberlo capturado en dosis.
+ */
+function enDosis(l: LineaCaptura): LineaCotizacion {
+  const k = l.caja ? dosisPorCaja(l.producto) : 1;
+  return { producto: l.producto, dosis: l.dosis * k, precio: k > 1 ? l.precio / k : l.precio };
+}
+
+const lineaVacia = (): LineaCaptura => ({ producto: '', dosis: 0, precio: 0 });
 
 function borradorNuevo(vendedor = ''): Borrador {
   return {
@@ -180,7 +197,7 @@ export function Cotizador() {
       folio,
       cliente: b.cliente.trim(),
       empleados: b.empleados,
-      lineas: b.lineas,
+      lineas: b.lineas.map(enDosis),
       sedes: b.sedes,
       cobrarLogistica: false,
       costoDia: b.costoDia || 0,
@@ -193,7 +210,7 @@ export function Cotizador() {
   // semáforo no se consulta, igual que en la hoja de Martin.
   const descuadre = descuadreDosis(r.logistica);
 
-  const setLinea = <K extends keyof LineaCotizacion>(i: number, campo: K, valor: LineaCotizacion[K]) =>
+  const setLinea = <K extends keyof LineaCaptura>(i: number, campo: K, valor: LineaCaptura[K]) =>
     cambiar((x) => ({
       ...x,
       lineas: x.lineas.map((l, j) => (j === i ? { ...l, [campo]: valor } : l)),
@@ -205,8 +222,26 @@ export function Cotizador() {
       lineas: x.lineas.map((l, j) =>
         // Al elegir el producto se carga su precio de lista; el vendedor lo
         // puede ajustar, igual que en la hoja de Martin.
-        j === i ? { ...l, producto, precio: PRECIO_DE_LISTA[producto] ?? l.precio } : l,
+        j === i
+          ? { ...l, producto, caja: false, precio: PRECIO_DE_LISTA[producto] ?? l.precio }
+          : l,
       ),
+    }));
+
+  /**
+   * Cambia entre dosis y cajas sin cambiar la campaña: 20 dosis a $950 pasan
+   * a 2 cajas a $9,500, y de regreso.
+   */
+  const cambiarUnidad = (i: number, caja: boolean) =>
+    cambiar((x) => ({
+      ...x,
+      lineas: x.lineas.map((l, j) => {
+        if (j !== i || !!l.caja === caja) return l;
+        const k = dosisPorCaja(l.producto);
+        return caja
+          ? { ...l, caja, dosis: l.dosis / k, precio: l.precio * k }
+          : { ...l, caja, dosis: l.dosis * k, precio: l.precio / k };
+      }),
     }));
 
   const setSedeCampo = <K extends keyof Sede>(i: number, campo: K, valor: Sede[K]) =>
@@ -356,20 +391,47 @@ export function Cotizador() {
                         </optgroup>
                       ))}
                     </select>
+                    {dosisPorCaja(l.producto) > 1 && (
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px]">
+                        <span className="mr-1 text-slate-400">Capturar en:</span>
+                        {[
+                          [false, 'Dosis'],
+                          [true, `Cajas de ${dosisPorCaja(l.producto)}`],
+                        ].map(([enCaja, texto]) => (
+                          <button
+                            key={String(enCaja)}
+                            type="button"
+                            onClick={() => cambiarUnidad(i, enCaja as boolean)}
+                            className={`rounded-full px-2.5 py-0.5 font-semibold transition-colors ${
+                              !!l.caja === enCaja
+                                ? 'bg-brand-dark text-white'
+                                : 'bg-white text-slate-500 ring-1 ring-slate-200 hover:text-brand-dark'
+                            }`}
+                          >
+                            {texto as string}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <Field
                     verde
                     type="number"
-                    label="Dosis"
+                    label={l.caja ? 'Cajas' : 'Dosis'}
                     min={0}
                     value={l.dosis}
                     onChange={(v) => setLinea(i, 'dosis', v)}
+                    hint={
+                      l.caja && l.dosis > 0
+                        ? `= ${formatNumber(enDosis(l).dosis)} dosis a ${dinero(enDosis(l).precio)}`
+                        : undefined
+                    }
                     className="col-span-5 sm:col-span-2"
                   />
                   <Field
                     verde
                     type="number"
-                    label="Precio unitario"
+                    label={l.caja ? 'Precio por caja' : 'Precio unitario'}
                     prefix="$"
                     min={0}
                     value={l.precio}
