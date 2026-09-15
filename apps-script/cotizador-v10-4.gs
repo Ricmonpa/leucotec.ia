@@ -383,13 +383,129 @@ function repararCostosFaltantes() {
   });
 }
 
+/**
+ * Ajustes al Excel de Martin aprobados el 15 sep 2026. Idempotente.
+ *
+ * 1. Recargo por tarjeta (E5:E12). Su formula multiplicaba precio x % x costo
+ *    de compra. Martin confirmo que es el % sobre lo que paga el cliente:
+ *    precio x dosis x %. G3 tiene formato de porcentaje pero la nota dice
+ *    "poner 2.5": si alguien escribe 2.5 se toma como 2.5%, no como 250%.
+ *
+ * 2. Sede en NINGUNA no cuesta nada. Antes una sede apagada con enfermeras o
+ *    transporte capturados seguia sumando a la logistica. Ahora su tarifa
+ *    (G30:G33) y su total (N38:N41) dan 0, y sus capturas se ven en gris.
+ *
+ * 3. Catalogo con espacio. La lista de productos de Costos llegaba justo a la
+ *    fila 38 y debajo viven otras listas (margenes, horas, sedes). Se insertan
+ *    filas vacias debajo de los productos para que Martin pueda agregar mas;
+ *    esas listas se recorren solas. Un producto que no este en Costos ya no da
+ *    un #N/A mudo: la celda dice "FALTA COSTO" y el semaforo no puede dar ok.
+ */
+var FILAS_EXTRA_CATALOGO = 60;
+
+function aplicarAjustesAprobados() {
+  var libro = SpreadsheetApp.getActiveSpreadsheet();
+  var h = hojaCotizador();
+  var costos = libro.getSheetByName('Costos');
+
+  // --- 3. Catalogo -------------------------------------------------------
+  var ultima = 38;
+  var yaAmpliado = /Costos!B\$3:C\$(\d+)/.exec(h.getRange('D5').getFormula());
+  if (yaAmpliado && Number(yaAmpliado[1]) > 38) {
+    ultima = Number(yaAmpliado[1]);
+  } else {
+    costos.insertRowsAfter(38, FILAS_EXTRA_CATALOGO);
+    ultima = 38 + FILAS_EXTRA_CATALOGO;
+  }
+  for (var f = 5; f <= 12; f++) {
+    h.getRange('D' + f).setFormula(
+      '=IF(OR(B' + f + '="";B' + f + '="NINGUNA");0;IFERROR(VLOOKUP(B' + f + ';Costos!B$3:C$' + ultima + ';2;FALSE);"FALTA COSTO"))'
+    );
+  }
+  var lista = costos.getRange('B3:B' + ultima);
+  h.getRange('B5:B12').setDataValidation(
+    SpreadsheetApp.newDataValidation().requireValueInRange(lista, true).build()
+  );
+
+  // --- 1. Recargo por tarjeta --------------------------------------------
+  for (var r = 5; r <= 12; r++) {
+    h.getRange('E' + r).setFormula(
+      '=G' + r + '*C' + r + '*IF(G$3>1;G$3/100;G$3)'
+    );
+  }
+
+  // --- 2. Sede en NINGUNA ------------------------------------------------
+  for (var i = 0; i < 4; i++) {
+    var sede = 'G' + (22 + i);
+    var horas = 'J' + (22 + i);
+    h.getRange('G' + (30 + i)).setFormula(
+      '=IF(' + sede + '="NINGUNA";0;IF(' + sede + '="FORANEO";801;IF(' + horas +
+      '="ninguna";0;IF(' + horas + '="1 a 4";600;800))))'
+    );
+    h.getRange('N' + (38 + i)).setFormula(
+      '=IF(' + sede + '="NINGUNA";0;J' + (30 + i) + '+J' + (38 + i) + '+L' + (38 + i) + ')'
+    );
+  }
+
+  var reglas = h.getConditionalFormatRules().filter(function (regla) {
+    return !regla.getRanges().some(function (x) {
+      var a = x.getA1Notation();
+      return /^H3[0-3]:I3[0-3]$|^G3[8-9]:I[34][0-9]$|^G4[01]:I4[01]$/.test(a);
+    });
+  });
+  for (var k = 0; k < 4; k++) {
+    reglas.push(SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=$G$' + (22 + k) + '="NINGUNA"')
+      .setBackground('#EFEFEF').setFontColor('#999999')
+      .setRanges([h.getRange('H' + (30 + k) + ':I' + (30 + k)), h.getRange('G' + (38 + k) + ':I' + (38 + k))])
+      .build());
+  }
+  h.setConditionalFormatRules(reglas);
+
+  SpreadsheetApp.flush();
+  Logger.log('Catalogo hasta fila ' + ultima + '. Listas: I2 ' +
+    listaDe(h.getRange('I2')) + ' | J22 ' + listaDe(h.getRange('J22')) + ' | G22 ' + listaDe(h.getRange('G22')));
+}
+
+/** A que rango apunta la lista desplegable de una celda (para verificar). */
+function listaDe(celda) {
+  var dv = celda.getDataValidation();
+  if (!dv) return 'sin lista';
+  var v = dv.getCriteriaValues();
+  return v && v[0] && v[0].getA1Notation ? v[0].getSheet().getName() + '!' + v[0].getA1Notation() : String(v);
+}
+
+/**
+ * Costos e Insumos quedan protegidas: ocultar una hoja no es un candado.
+ * Ojo: un editor del archivo igual puede LEERLAS. Si los vendedores no deben
+ * ver costos, no pueden ser editores de este archivo.
+ */
+function protegerInternas() {
+  var libro = SpreadsheetApp.getActiveSpreadsheet();
+  ['Costos', 'Insumos'].forEach(function (nombre) {
+    var hoja = libro.getSheetByName(nombre);
+    if (!hoja) return;
+    hoja.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(function (p) { p.remove(); });
+    var prot = hoja.protect().setDescription('Costos internos. Solo editan: ' + EDITORES.join(', '));
+    prot.addEditors(EDITORES);
+    prot.getEditors().forEach(function (u) {
+      if (EDITORES.indexOf(u.getEmail()) === -1) {
+        try { prot.removeEditor(u.getEmail()); } catch (e) { /* dueño del archivo */ }
+      }
+    });
+    if (prot.canDomainEdit()) prot.setDomainEdit(false);
+  });
+}
+
 function conectar() {
   var libro = SpreadsheetApp.getActiveSpreadsheet();
   prepararEnlace();
   aplicarRevisionDosis();
   repararCostosFaltantes();
+  aplicarAjustesAprobados();
   ocultarInternas();
   protegerHoja();
+  protegerInternas();
   SpreadsheetApp.flush();
   libro.toast('Conectado. Pueden editar todo: ' + EDITORES.join(', '), 'Leucotec', 8);
 }
