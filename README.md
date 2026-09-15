@@ -335,7 +335,7 @@ npm run build                           # build limpio
 
 **Producto**
 - [ ] **Login en `/cotizador`** restringido a correos de Leucotec. Hoy cualquiera con el enlace lo abre; no ve costos, pero podría sondear el semáforo.
-- [ ] El semáforo y el historial usan el **Sheet construido**, no la copia de Martin. Si Martin cambia un costo sólo en su copia, el semáforo no se entera. Unificar la fuente de costos.
+- [x] El semáforo web lee costos y margen mínimo de la **copia V10.4 de Martin** (`apps-script/semaforo-web.gs`); el historial sigue en el Sheet construido. Un producto sin costo responde REVISAR.
 - [ ] El catálogo de `/cotizador` trae 21 productos; el Excel de Martin, 35. Faltan pediátricos, rotavirus y hexavalentes.
 
 **Técnica**
