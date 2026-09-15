@@ -363,10 +363,31 @@ function aplicarRevisionDosis() {
   h.setConditionalFormatRules(reglas);
 }
 
+/**
+ * Pone la formula de costo total que falta en los renglones 4 y 6 de vacunas.
+ *
+ * En el Excel de Martin F8 y F10 quedaron vacias: una vacuna capturada ahi no
+ * sumaba su costo en F13 y el semaforo podia dar "ok" en falso. Es la misma
+ * formula que el resto de la columna. Martin lo aprobo (sep 2026).
+ *
+ * Solo escribe si la celda esta vacia: se puede correr las veces que sea.
+ * La columna F no esta entre los rangos editables de protegerHoja().
+ */
+function repararCostosFaltantes() {
+  var h = hojaCotizador();
+  [8, 10].forEach(function (fila) {
+    var celda = h.getRange('F' + fila);
+    if (!celda.getFormula() && celda.getValue() === '') {
+      celda.setFormula('=E' + fila + '+D' + fila + '*C' + fila);
+    }
+  });
+}
+
 function conectar() {
   var libro = SpreadsheetApp.getActiveSpreadsheet();
   prepararEnlace();
   aplicarRevisionDosis();
+  repararCostosFaltantes();
   ocultarInternas();
   protegerHoja();
   SpreadsheetApp.flush();
