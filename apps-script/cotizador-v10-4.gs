@@ -326,9 +326,43 @@ function ocultarInternas() {
   }
 }
 
+/**
+ * Semaforo con doble condicion, aprobado por Martin (14 sep 2026).
+ *
+ * Las dosis de cada sede se escriben a mano. Si las sedes activas no suman el
+ * total de vacunas (C13), los insumos salen mal y el margen no es confiable:
+ * el semaforo no puede decir "ok". Primero se revisan las dosis; despues, el
+ * margen, igual que siempre.
+ *
+ * Las sedes en NINGUNA no cuentan, por si quedo un numero olvidado.
+ * Es idempotente: se puede correr las veces que sea.
+ */
+function aplicarRevisionDosis() {
+  var h = hojaCotizador();
+  var suma = 'SUMIF(G22:G25;"<>NINGUNA";H22:H25)';
+
+  h.getRange('I17').setFormula(
+    '=IF(' + suma + '<>C13;"revisar dosis por sede";IF((H17-F17)/H17>I2;"ok";"revisar precios"))'
+  );
+
+  // Las celdas de dosis por sede se pintan de rojo mientras no cuadren, para
+  // que el vendedor vea donde esta el problema.
+  var rango = h.getRange('H22:H25');
+  var reglas = h.getConditionalFormatRules().filter(function (r) {
+    return !r.getRanges().some(function (x) { return x.getA1Notation() === 'H22:H25'; });
+  });
+  reglas.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=' + suma.replace(/(G|H)(2[25])/g, '$$$1$$$2') + '<>$C$13')
+    .setBackground('#F4CCCC').setFontColor('#990000')
+    .setRanges([rango])
+    .build());
+  h.setConditionalFormatRules(reglas);
+}
+
 function conectar() {
   var libro = SpreadsheetApp.getActiveSpreadsheet();
   prepararEnlace();
+  aplicarRevisionDosis();
   ocultarInternas();
   protegerHoja();
   SpreadsheetApp.flush();
