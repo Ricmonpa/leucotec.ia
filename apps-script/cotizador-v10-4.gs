@@ -350,9 +350,11 @@ function aplicarRevisionDosis() {
   var sinDosis = 'SUMPRODUCT((G22:G25<>"NINGUNA")*(G22:G25<>"")*(H22:H25<=0))>0';
   var descuadre = 'OR(' + suma + '<>C13;' + sinDosis + ')';
 
+  // Margen igual o mayor al minimo = ok (Martin, 16 sep 2026). Se redondea a
+  // 4 decimales para que un margen de exactamente 20% no salga 19.9999%.
   var unidadMal = 'SUMPRODUCT((I5:I12="CAJA 10")*NOT(ISNUMBER(SEARCH("COMIRNATY Omicron XBB";B5:B12))))>0';
   h.getRange('I17').setFormula(
-    '=IF(' + unidadMal + ';"revisar unidad";IF(' + descuadre + ';"revisar dosis por sede";IF((H17-F17)/H17>I2;"ok";"revisar precios")))'
+    '=IF(' + unidadMal + ';"revisar unidad";IF(' + descuadre + ';"revisar dosis por sede";IF(ROUND((H17-F17)/H17;4)>=I2;"ok";"revisar precios")))'
   );
 
   // Las celdas de dosis por sede se pintan de rojo mientras no cuadren, para

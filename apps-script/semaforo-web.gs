@@ -8,7 +8,7 @@
 //
 // La cuenta es la misma que la I17 de la V10.4:
 //   margen = (precio total - (costo biológico + logística)) / precio total
-//   "OK" si margen > I2; si no, "REVISAR".
+//   "OK" si margen >= I2 (redondeado a 4 decimales); si no, "REVISAR".
 // La logística la manda la web, calculada con el mismo motor que cuadra al
 // centavo con la hoja. La web no tiene pago con tarjeta: recargo 0.
 //
@@ -136,7 +136,8 @@ function doPost(e) {
     }
 
     var margen = precioTotal > 0 ? (precioTotal - costoTotal) / precioTotal : 0;
-    var estado = !faltaCosto && margen > v104.margenMinimo ? 'OK' : 'REVISAR';
+    // Igual o mayor al minimo = OK, como la I17 de Martin (16 sep 2026).
+    var estado = !faltaCosto && Math.round(margen * 10000) / 10000 >= v104.margenMinimo ? 'OK' : 'REVISAR';
 
     var r = R.getLastRow() + 1;
     R.getRange(r, 1, 1, 4).setValues([[folio, d.fecha || new Date(), d.vendedor || '', d.empresa || '']]);
