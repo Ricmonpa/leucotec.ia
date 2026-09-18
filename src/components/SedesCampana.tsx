@@ -149,7 +149,18 @@ export function SedesCampana({
                 />
               </div>
 
-              {/* Con una sola sede el reparto es obvio y el campo sólo estorba. */}
+              {/* Con una sola sede no hay nada que repartir: ahí se aplica la
+                  campaña completa. Se muestra el número —no se captura— para
+                  que el vendedor siempre vea cuántas dosis está costeando. */}
+              {!varias && (
+                <div className="flex items-center justify-between rounded-lg border border-dashed border-slate-200 px-3 py-2">
+                  <span className="text-xs font-semibold text-slate-500">Dosis en esta sede</span>
+                  <span className="text-sm font-bold tabular-nums text-brand-dark">
+                    {costo?.dosis ?? 0}
+                  </span>
+                </div>
+              )}
+
               {varias && (
                 <Field
                   verde={verde}

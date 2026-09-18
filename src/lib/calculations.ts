@@ -242,6 +242,12 @@ function calcularSede(sede: Sede): CostoSede {
 function repartirDosis(sedes: Sede[], dosisTotales: number): Sede[] {
   if (!sedes.length) return [];
 
+  // Con una sola sede ahí se aplica TODA la campaña, sin discusión. Antes se
+  // respetaba lo que hubiera quedado escrito en la sede, así que al quitar la
+  // segunda sede las dosis que ésta tenía dejaban de contarse: los insumos y
+  // el RPBI salían de menos y el margen se veía mejor de lo que era.
+  if (sedes.length === 1) return [{ ...sedes[0], dosis: Math.max(0, dosisTotales) }];
+
   const declaradas = sedes.reduce((s, x) => s + Math.max(0, x.dosis || 0), 0);
   const restante = Math.max(0, dosisTotales - declaradas);
   const primeraSinDosis = sedes.findIndex((x) => !x.dosis || x.dosis <= 0);

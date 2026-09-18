@@ -81,3 +81,20 @@ describe('descuadreDosis', () => {
   it('sede activa sin dosis', () => expect(descuadreDosis(logistica([100, 0], 100))).toBe('sede-sin-dosis'));
   it('cuadra', () => expect(descuadreDosis(logistica([60, 40], 100))).toBeNull());
 });
+
+describe('una sola sede', () => {
+  it('aplica toda la campaña aunque traiga dosis viejas de cuando había dos sedes', () => {
+    // El vendedor escribió 200 en la sede 1, la sede 2 absorbía 100 y luego
+    // borró la sede 2: esas 100 dosis no pueden desaparecer del costo.
+    const base = { enfermerasPorDia: 1, diasVacunacion: 1, transporte: 1200 };
+    const dos = calcularLogistica(
+      conSedes([sede({ ...base, dosis: 200 }), sede({ ...base, dosis: 0, transporte: 0 })]),
+      300,
+    );
+    const una = calcularLogistica(conSedes([sede({ ...base, dosis: 200 })]), 300);
+
+    expect(una.dosisAsignadas).toBe(300);
+    expect(una.insumos).toBeCloseTo(dos.insumos, 2);
+    expect(descuadreDosis(una)).toBeNull();
+  });
+});
