@@ -36,7 +36,13 @@ var URL_COTIZACION = 'https://leucotec.ia.potenttial.site/cotizacion';
 // verdes. En Sheets no hay contraseña: se nombra por correo, que además es
 // mejor, porque si alguien se va se le quita el acceso sin cambiarle la clave
 // a todo el equipo.
-var EDITORES = ['martinc@leucotec.mx', 'rmmoncada5@gmail.com'];
+var EDITORES = [
+  'martinc@leucotec.mx',
+  'atencionaclientes1@leucotec.mx',
+  'brobles@leucotec.mx',
+  'colagenart@gmail.com',
+  'rmmoncada5@gmail.com'
+];
 
 var VERDE = '#D9EAD3';
 
