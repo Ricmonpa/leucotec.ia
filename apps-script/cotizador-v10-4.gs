@@ -38,8 +38,6 @@ var URL_COTIZACION = 'https://leucotec.ia.potenttial.site/cotizacion';
 // a todo el equipo.
 var EDITORES = [
   'martinc@leucotec.mx',
-  'atencionaclientes1@leucotec.mx',
-  'brobles@leucotec.mx',
   'colagenart@gmail.com',
   'rmmoncada5@gmail.com'
 ];
