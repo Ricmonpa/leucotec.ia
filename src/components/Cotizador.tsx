@@ -41,6 +41,8 @@ import {
   type LineaCotizacion,
 } from '../lib/cotizacionImprimible';
 import { revisarMargenCotizacion, type EstadoMargen } from '../lib/cotizador';
+import { cerrarSesion, leerSesion, type Sesion } from '../lib/sesion';
+import { EntradaCotizador } from './EntradaCotizador';
 import { MAX_SEDES } from '../hooks/useRoiCalculator';
 
 /** Su Excel cotiza hasta ocho vacunas por campaña. */
@@ -164,9 +166,29 @@ function Bloque({
   );
 }
 
+/**
+ * El cotizador es de uso interno: sin sesión del equipo de Leucotec se pide
+ * correo y código. La protección real está en el Sheet, que sólo entrega el %
+ * de margen a sesiones que él mismo firmó.
+ */
 export function Cotizador() {
+  const [sesion, setSesion] = useState<Sesion | null>(leerSesion);
+  if (!sesion) return <EntradaCotizador onEntrar={setSesion} />;
+  return (
+    <CotizadorInterno
+      sesion={sesion}
+      onSalir={() => {
+        cerrarSesion();
+        setSesion(null);
+      }}
+    />
+  );
+}
+
+function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => void }) {
   const [b, setB] = useState<Borrador>(leerBorrador);
   const [estado, setEstado] = useState<EstadoMargen | null>(null);
+  const [margen, setMargen] = useState<number | null>(null);
   const [revisando, setRevisando] = useState(false);
 
   useEffect(() => {
@@ -189,6 +211,7 @@ export function Cotizador() {
   const cambiar = (f: (actual: Borrador) => Borrador) => {
     setB(f);
     setEstado(null);
+    setMargen(null);
   };
 
   const { folio } = b;
@@ -252,8 +275,9 @@ export function Cotizador() {
 
   async function revisar() {
     setRevisando(true);
-    const envio = await revisarMargenCotizacion(cotizacion, b.vendedor.trim());
+    const envio = await revisarMargenCotizacion(cotizacion, b.vendedor.trim() || sesion.correo, sesion.token);
     setEstado(envio.estado);
+    setMargen(envio.margen ?? null);
     setRevisando(false);
   }
 
@@ -269,6 +293,7 @@ export function Cotizador() {
     if (!window.confirm('¿Empezar una cotización nueva? Se borra lo que llevas capturado.')) return;
     setB(borradorNuevo(b.vendedor));
     setEstado(null);
+    setMargen(null);
   }
 
   return (
@@ -285,6 +310,14 @@ export function Cotizador() {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-slate-400 md:inline">Folio {folio}</span>
+            <button
+              type="button"
+              onClick={onSalir}
+              title={`Sesión de ${sesion.correo}. Clic para salir.`}
+              className="hidden max-w-[12rem] truncate rounded-full border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:text-brand-primary lg:inline"
+            >
+              {sesion.correo} · salir
+            </button>
             <button
               type="button"
               onClick={nueva}
@@ -552,11 +585,13 @@ export function Cotizador() {
                 {!descuadre && estado === 'OK' && (
                   <p className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
                     <CheckCircle2 className="h-5 w-5" /> ok · el precio aguanta
+                    {margen !== null && <span className="ml-auto tabular-nums">{margen.toFixed(1)}%</span>}
                   </p>
                 )}
                 {!descuadre && estado === 'REVISAR' && (
                   <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm font-bold text-brand-primary">
                     <AlertTriangle className="h-5 w-5" /> revisar precios
+                    {margen !== null && <span className="ml-auto tabular-nums">{margen.toFixed(1)}%</span>}
                   </p>
                 )}
                 {!descuadre && estado === 'SIN_CONEXION' && (
@@ -581,7 +616,7 @@ export function Cotizador() {
               </button>
               <p className="mt-2 text-[11px] leading-snug text-slate-400">
                 Se compara contra el margen mínimo de Leucotec y queda guardada en el historial con el folio{' '}
-                {folio}. Los costos nunca se muestran aquí.
+                {folio}. El % es la ganancia de la campaña con los costos de la hoja de Martin; los costos no se muestran.
               </p>
             </section>
 

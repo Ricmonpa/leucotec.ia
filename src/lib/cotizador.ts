@@ -18,7 +18,7 @@ import { resumirCotizacion, type CotizacionImprimible } from './cotizacionImprim
  * URL del Apps Script del cotizador. Es distinta a la del registro de leads:
  * ese script vive en el libro de prospectos, éste en el libro de costos.
  */
-const COTIZADOR_URL: string =
+export const COTIZADOR_URL: string =
   'https://script.google.com/macros/s/AKfycbzzc92nUTXnWFJeBLEv2l3knTHRStCxDP7v9JJ-kKAWRldMeErxd3cjPJRqGgSKhtY44Q/exec';
 
 /**
@@ -31,6 +31,11 @@ export type EstadoMargen = 'OK' | 'REVISAR' | 'REVISAR_DOSIS' | 'SIN_CONEXION';
 export interface EnvioCotizacion {
   folio: string;
   estado: EstadoMargen;
+  /**
+   * % de ganancia de la campaña. Sólo llega si el Sheet reconoció la sesión
+   * del vendedor (cotizador en línea, uso interno).
+   */
+  margen?: number;
 }
 
 /** True si Leucotec ya conectó su cotizador. */
@@ -142,6 +147,7 @@ export async function enviarCotizacion(
 export async function revisarMargenCotizacion(
   cotizacion: CotizacionImprimible,
   vendedor: string,
+  sesion?: string,
 ): Promise<EnvioCotizacion> {
   const { folio } = cotizacion;
   if (!cotizadorConfigurado()) return { folio, estado: 'SIN_CONEXION' };
@@ -158,6 +164,7 @@ export async function revisarMargenCotizacion(
         folio,
         fecha: fechaMX(),
         vendedor,
+        sesion,
         empresa: cotizacion.cliente,
         empleados: cotizacion.empleados,
         lineas: r.lineas.map((l) => ({
@@ -173,10 +180,11 @@ export async function revisarMargenCotizacion(
       }),
     });
 
-    const datos = (await respuesta.json()) as { estado?: string };
+    const datos = (await respuesta.json()) as { estado?: string; margen?: number };
     const estado =
       datos.estado === 'OK' || datos.estado === 'REVISAR' ? datos.estado : 'SIN_CONEXION';
-    return { folio, estado };
+    const margen = typeof datos.margen === 'number' ? datos.margen : undefined;
+    return { folio, estado, margen };
   } catch {
     return { folio, estado: 'SIN_CONEXION' };
   }
