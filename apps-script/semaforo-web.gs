@@ -15,7 +15,8 @@
 // Un producto que no esté en Costos de la V10.4 NUNCA cuenta como costo 0: la
 // respuesta es REVISAR. Antes el VLOOKUP caía a 0 y podía dar OK en falso.
 //
-// Al navegador sólo regresa OK o REVISAR. Nunca costos ni márgenes.
+// Al navegador regresa OK o REVISAR. El % de margen sólo se entrega a una
+// sesión válida del equipo de Leucotec (ver "Acceso" abajo). Nunca costos.
 // OJO: repositorio público. Nada de cifras de costo aquí.
 //
 // Reemplaza en el proyecto las funciones doPost y escribirLinea anteriores.
@@ -101,10 +102,112 @@ function costoProducto(v104, producto) {
   return total;
 }
 
+// ---------------------------------------------------------------------------
+// Acceso al cotizador en línea: código por correo.
+//
+// Leucotec usa correo de Microsoft, así que no sirve "Entrar con Google". El
+// vendedor escribe su correo, le llega un código de 6 dígitos y con él obtiene
+// una sesión firmada de 30 días. La firma usa un secreto que vive en las
+// propiedades del script: el navegador no puede fabricar una sesión.
+//
+// Sólo con sesión válida se entrega el % de margen. Sin sesión, el semáforo
+// sigue respondiendo OK/REVISAR como siempre (lo usa también el simulador).
+// ---------------------------------------------------------------------------
+
+var DOMINIO_PERMITIDO = '@leucotec.mx';
+var CORREOS_PERMITIDOS = ['colagenart@gmail.com', 'rmmoncada5@gmail.com'];
+var DIAS_SESION = 30;
+var MINUTOS_CODIGO = 10;
+var INTENTOS_CODIGO = 5;
+
+function correoPermitido(correo) {
+  correo = String(correo || '').trim().toLowerCase();
+  return /^[^@\s]+@[^@\s]+$/.test(correo) &&
+    (correo.slice(-DOMINIO_PERMITIDO.length) === DOMINIO_PERMITIDO ||
+      CORREOS_PERMITIDOS.indexOf(correo) !== -1);
+}
+
+function secretoSesion() {
+  var props = PropertiesService.getScriptProperties();
+  var s = props.getProperty('SECRETO_SESION');
+  if (!s) {
+    s = Utilities.getUuid() + Utilities.getUuid();
+    props.setProperty('SECRETO_SESION', s);
+  }
+  return s;
+}
+
+function firmar(texto) {
+  var bytes = Utilities.computeHmacSha256Signature(texto, secretoSesion());
+  return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
+}
+
+function crearSesion(correo) {
+  var carga = correo + '|' + (Date.now() + DIAS_SESION * 86400000);
+  return Utilities.base64EncodeWebSafe(carga).replace(/=+$/, '') + '.' + firmar(carga);
+}
+
+/** Correo de la sesión, o null si no es válida o ya venció. */
+function leerSesion(token) {
+  var partes = String(token || '').split('.');
+  if (partes.length !== 2) return null;
+  var carga;
+  try {
+    carga = Utilities.newBlob(Utilities.base64DecodeWebSafe(partes[0])).getDataAsString();
+  } catch (e) {
+    return null;
+  }
+  if (firmar(carga) !== partes[1]) return null;
+  var c = carga.split('|');
+  if (Number(c[1]) < Date.now() || !correoPermitido(c[0])) return null;
+  return c[0];
+}
+
+function pedirCodigo(d) {
+  var correo = String(d.correo || '').trim().toLowerCase();
+  if (!correoPermitido(correo)) return { ok: false, error: 'correo-no-autorizado' };
+
+  var cache = CacheService.getScriptCache();
+  if (cache.get('espera:' + correo)) return { ok: false, error: 'espera' };
+
+  var codigo = String(Math.floor(100000 + Math.random() * 900000));
+  cache.put('codigo:' + correo, JSON.stringify({ codigo: codigo, intentos: 0 }), MINUTOS_CODIGO * 60);
+  cache.put('espera:' + correo, '1', 45);
+
+  MailApp.sendEmail({
+    to: correo,
+    subject: 'Tu código para el cotizador Leucotec: ' + codigo,
+    body: 'Tu código de acceso al cotizador de Grupo Leucotec es: ' + codigo + '\n\n' +
+      'Vence en ' + MINUTOS_CODIGO + ' minutos. Si no lo pediste, ignora este correo.',
+    name: 'Cotizador Leucotec'
+  });
+  return { ok: true };
+}
+
+function verificarCodigo(d) {
+  var correo = String(d.correo || '').trim().toLowerCase();
+  var cache = CacheService.getScriptCache();
+  var guardado = cache.get('codigo:' + correo);
+  if (!guardado) return { ok: false, error: 'codigo-vencido' };
+
+  var g = JSON.parse(guardado);
+  if (String(d.codigo || '').trim() !== g.codigo) {
+    g.intentos += 1;
+    if (g.intentos >= INTENTOS_CODIGO) cache.remove('codigo:' + correo);
+    else cache.put('codigo:' + correo, JSON.stringify(g), MINUTOS_CODIGO * 60);
+    return { ok: false, error: 'codigo-incorrecto' };
+  }
+  cache.remove('codigo:' + correo);
+  return { ok: true, correo: correo, sesion: crearSesion(correo), dias: DIAS_SESION };
+}
+
 function doPost(e) {
   try {
     var d = JSON.parse(e.postData.contents);
+    if (d.tipo === 'pedirCodigo') return responder(pedirCodigo(d));
+    if (d.tipo === 'verificarCodigo') return responder(verificarCodigo(d));
     if (d.tipo !== 'cotizacion') return responder({ ok: true, ignorado: true });
+    var usuario = leerSesion(d.sesion);
 
     var libro = SpreadsheetApp.getActiveSpreadsheet();
     var L = libro.getSheetByName('Cotizaciones');
@@ -153,7 +256,10 @@ function doPost(e) {
     R.getRange(r, 8).setNumberFormat('0.0%');
 
     SpreadsheetApp.flush();
-    return responder({ ok: true, folio: folio, estado: estado });
+    var respuesta = { ok: true, folio: folio, estado: estado };
+    // El % sólo va a una sesión del equipo; sin sesión, sólo el semáforo.
+    if (usuario && !faltaCosto) respuesta.margen = Math.round(margen * 1000) / 10;
+    return responder(respuesta);
   } catch (err) {
     return responder({ ok: false, error: String(err) });
   }
@@ -173,4 +279,12 @@ function escribirLinea(L, folio, d, concepto, cantidad, precio, costo) {
   L.getRange(f, 12).setFormula('=IF(H' + f + '>0;K' + f + '/H' + f + ';0)');
   L.getRange(f, 7, 1, 5).setNumberFormat('$#,##0.00');
   L.getRange(f, 12).setNumberFormat('0.0%');
+}
+
+/**
+ * Correr UNA vez desde el editor: hace que Google pida el permiso de enviar
+ * correos (para los códigos de acceso). Solo consulta la cuota; no envía nada.
+ */
+function autorizarCorreo() {
+  Logger.log('Correos disponibles hoy: ' + MailApp.getRemainingDailyQuota());
 }
