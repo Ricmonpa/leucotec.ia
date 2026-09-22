@@ -295,9 +295,12 @@ function aplicarRevisionDosis() {
 
   // Margen igual o mayor al minimo = ok (Martin, 16 sep 2026). Se redondea a
   // 4 decimales para que un margen de exactamente 20% no salga 19.9999%.
+  var faltaCosto = 'SUM(K5:K12)>0';
   var unidadMal = 'SUMPRODUCT((I5:I12="CAJA 10")*NOT(ISNUMBER(SEARCH("COMIRNATY Omicron XBB";B5:B12))))>0';
   h.getRange('I17').setFormula(
-    '=IF(' + unidadMal + ';"revisar unidad";IF(' + descuadre + ';"revisar dosis por sede";IF(ROUND((H17-F17)/H17;4)>=I2;"ok";"revisar precios")))'
+    '=IF(' + faltaCosto + ';"falta costo de una vacuna";' +
+    'IF(' + unidadMal + ';"revisar unidad";IF(' + descuadre + ';"revisar dosis por sede";' +
+    'IF(ROUND((H17-F17)/H17;4)>=I2;"ok";"revisar precios"))))'
   );
 
   // Las celdas de dosis por sede se pintan de rojo mientras no cuadren, para
@@ -349,8 +352,10 @@ function repararCostosFaltantes() {
  * 3. Catalogo con espacio. La lista de productos de Costos llegaba justo a la
  *    fila 38 y debajo viven otras listas (margenes, horas, sedes). Se insertan
  *    filas vacias debajo de los productos para que Martin pueda agregar mas;
- *    esas listas se recorren solas. Un producto que no este en Costos ya no da
- *    un #N/A mudo: la celda dice "FALTA COSTO" y el semaforo no puede dar ok.
+ *    esas listas se recorren solas. Un costo que falte o venga como texto
+ *    (p.ej. "653.5" con punto, o "TBD") NO rompe la hoja: la celda queda en 0,
+ *    la columna K lo marca y el semaforo dice "falta costo". Antes se escribia
+ *    "FALTA COSTO" y ese texto dejaba el Gran Total en #VALUE!.
  */
 var FILAS_EXTRA_CATALOGO = 60;
 
@@ -381,10 +386,23 @@ function aplicarAjustesAprobados() {
     ultima = 38 + FILAS_EXTRA_CATALOGO;
   }
   for (var f = 5; f <= 12; f++) {
+    // Costo de compra del renglon. Se intenta como numero; si Martin lo
+    // capturo con punto en una hoja de coma decimal, se convierte; si no hay
+    // costo (vacio, "TBD", producto fuera del catalogo), vale 0 y lo marca K.
+    var busca = 'VLOOKUP(B' + f + ';Costos!B$3:C$' + ultima + ';2;FALSE)';
+    var factor = factorCaja(f);
     h.getRange('D' + f).setFormula(
-      '=IF(OR(B' + f + '="";B' + f + '="NINGUNA");0;IFERROR(VLOOKUP(B' + f + ';Costos!B$3:C$' + ultima + ';2;FALSE)*' + factorCaja(f) + ';"FALTA COSTO"))'
+      '=IF(OR(B' + f + '="";B' + f + '="NINGUNA");0;' +
+      'IFERROR(' + busca + '*' + factor + ';' +
+      'IFERROR(VALUE(SUBSTITUTE(' + busca + ';".";","))*' + factor + ';0)))'
+    );
+    // 1 = renglon capturado sin costo utilizable.
+    h.getRange('K' + f).setFormula(
+      '=IF(OR(B' + f + '="";B' + f + '="NINGUNA");0;IF(D' + f + '>0;0;1))'
     );
   }
+  h.getRange('K4').setValue('SIN COSTO').setFontColor('#999999').setFontSize(8);
+  h.hideColumns(11); // K: control interno, no es para el vendedor
   var lista = costos.getRange('B3:B' + ultima);
   h.getRange('B5:B12').setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInRange(lista, true).build()
