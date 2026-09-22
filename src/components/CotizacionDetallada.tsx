@@ -25,7 +25,7 @@ import {
   resumirCotizacion,
   type CotizacionImprimible,
 } from '../lib/cotizacionImprimible';
-import { INSUMOS_APLICACION, MANEJO_RPBI, cantidadInsumo, unidadDe } from '../lib/insumosCatalogo';
+import { INSUMOS_APLICACION, MANEJO_RPBI, cantidadInsumo, rendimientoDe, unidadDe } from '../lib/insumosCatalogo';
 
 interface CotizacionDetalladaProps {
   cotizacion: CotizacionImprimible;
@@ -308,7 +308,7 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
       ))}
 
       {/* ---------------- 4. Insumos ---------------- */}
-      <Seccion n={4} titulo="Insumos de aplicación" nota={`Calculados para ${formatNumber(r.dosisTotales)} dosis`} />
+      <Seccion n={4} titulo="Insumos de aplicación" nota={`Calculados para ${formatNumber(r.dosisTotales)} dosis y ${formatNumber(r.turnos)} ${r.turnos === 1 ? 'turno' : 'turnos'} de enfermería`} />
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -320,15 +320,11 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
         </thead>
         <tbody>
           {INSUMOS_APLICACION.map((ins) => {
-            const cantidad = cantidadInsumo(ins, r.dosisTotales);
+            const cantidad = cantidadInsumo(ins, r.dosisTotales, r.turnos);
             return (
               <tr key={ins.nombre}>
                 <td className={`${td} font-semibold text-brand-dark`}>{ins.nombre}</td>
-                <td className={td}>
-                  {ins.porDosis >= 1
-                    ? `${ins.porDosis} ${unidadDe(ins, ins.porDosis)} por dosis`
-                    : `1 ${ins.unidad} por cada ${Math.round(1 / ins.porDosis)} dosis`}
-                </td>
+                <td className={td}>{rendimientoDe(ins)}</td>
                 <td className={`${td} ${der}`}>
                   {formatNumber(cantidad)} {unidadDe(ins, cantidad)}
                 </td>

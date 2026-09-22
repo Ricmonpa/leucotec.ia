@@ -12,8 +12,13 @@
 
 export interface InsumoAplicacion {
   nombre: string;
-  /** Cuántas unidades se consumen por cada dosis aplicada. */
-  porDosis: number;
+  /**
+   * Sobre qué se cuenta: por cada dosis aplicada, o por turno de enfermería
+   * (una enfermera durante una jornada).
+   */
+  base: 'dosis' | 'turno';
+  /** Cuántas unidades se consumen por cada dosis o por cada turno. */
+  cantidad: number;
   /** Unidad en singular, para redactar la línea. */
   unidad: string;
   /** Plural de la unidad. "par" no pluraliza con una "s" pegada. */
@@ -21,16 +26,20 @@ export interface InsumoAplicacion {
 }
 
 /**
- * Consumibles por dosis. Las fracciones salen de su propio desglose: el
- * cubrebocas rinde 10 aplicaciones y el campo estéril 20.
+ * Consumibles de la aplicación.
+ *
+ * Parche, torunda y gel se gastan con cada dosis. Guantes, cubrebocas y campo
+ * estéril son del personal: uno por enfermera por jornada (Leucotec, reunión
+ * de sep 2026). Antes se contaban por dosis y la cotización exageraba: 200
+ * dosis salían en 200 pares de guantes aunque las pusieran 2 enfermeras.
  */
 export const INSUMOS_APLICACION: InsumoAplicacion[] = [
-  { nombre: 'Parche post-punción', porDosis: 1, unidad: 'pieza', unidadPlural: 'piezas' },
-  { nombre: 'Torunda de algodón', porDosis: 1, unidad: 'pieza', unidadPlural: 'piezas' },
-  { nombre: 'Gel antibacterial', porDosis: 2, unidad: 'mL', unidadPlural: 'mL' },
-  { nombre: 'Guantes de látex', porDosis: 1, unidad: 'par', unidadPlural: 'pares' },
-  { nombre: 'Cubrebocas del personal', porDosis: 0.1, unidad: 'pieza', unidadPlural: 'piezas' },
-  { nombre: 'Campo estéril', porDosis: 0.05, unidad: 'pieza', unidadPlural: 'piezas' },
+  { nombre: 'Parche post-punción', base: 'dosis', cantidad: 1, unidad: 'pieza', unidadPlural: 'piezas' },
+  { nombre: 'Torunda de algodón', base: 'dosis', cantidad: 1, unidad: 'pieza', unidadPlural: 'piezas' },
+  { nombre: 'Gel antibacterial', base: 'dosis', cantidad: 2, unidad: 'mL', unidadPlural: 'mL' },
+  { nombre: 'Guantes de látex', base: 'turno', cantidad: 1, unidad: 'par', unidadPlural: 'pares' },
+  { nombre: 'Cubrebocas del personal', base: 'turno', cantidad: 1, unidad: 'pieza', unidadPlural: 'piezas' },
+  { nombre: 'Campo estéril', base: 'turno', cantidad: 1, unidad: 'pieza', unidadPlural: 'piezas' },
 ];
 
 /**
@@ -45,9 +54,20 @@ export const MANEJO_RPBI = [
   { nombre: 'Recolección y disposición certificada', detalle: 'Empresa autorizada, con manifiesto' },
 ];
 
-/** Cantidad de un insumo para un número de dosis, ya redondeada hacia arriba. */
-export function cantidadInsumo(insumo: InsumoAplicacion, dosis: number): number {
-  return Math.ceil(insumo.porDosis * dosis);
+/**
+ * Cantidad de un insumo para la campaña, redondeada hacia arriba.
+ * `turnos` = enfermeras por día x jornadas, sumando todas las sedes.
+ */
+export function cantidadInsumo(insumo: InsumoAplicacion, dosis: number, turnos: number): number {
+  return Math.ceil(insumo.cantidad * (insumo.base === 'dosis' ? dosis : turnos));
+}
+
+/** Cómo se lee el rendimiento: "1 pieza por dosis", "1 par por enfermera por jornada". */
+export function rendimientoDe(insumo: InsumoAplicacion): string {
+  const u = unidadDe(insumo, insumo.cantidad);
+  return insumo.base === 'dosis'
+    ? `${insumo.cantidad} ${u} por dosis`
+    : `${insumo.cantidad} ${u} por enfermera por jornada`;
 }
 
 /** La unidad como se debe leer para esa cantidad. */
