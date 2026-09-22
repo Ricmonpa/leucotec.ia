@@ -19,6 +19,9 @@
 // sesión válida del equipo de Leucotec (ver "Acceso" abajo). Nunca costos.
 // OJO: repositorio público. Nada de cifras de costo aquí.
 //
+// Los productos se reconocen por el CÓDIGO de Costos (columna A), no por la
+// descripción: Martin puede reescribir descripciones sin romper nada.
+//
 // Reemplaza en el proyecto las funciones doPost y escribirLinea anteriores.
 // Tras pegarlo: Implementar > Administrar implementaciones > Editar >
 // Nueva versión (la URL no cambia).
@@ -26,51 +29,34 @@
 
 var ID_V104 = '1B6nQ9KAyXIE-rgAYEoiA7LrTcgzIfwoI0rRAEW9JXpY';
 
-// Descripción del catálogo de Martin -> nombre comercial que manda la web.
-// Es el mismo MAPA de cotizador-v10-4.gs.
-var MAPA_V104 = {
-  'ADACELBOOST 1 FCO, SUSP, INY, 1 DS': 'Adacel Boost',
-  'MENACTRA,MENINGOCOCO,FA,1DS,0.5 ML': 'Menactra',
-  'STAMARIL,FAMARILLA17D,1DS,SUS.INY,0.5ML': 'Stamaril',
-  'TYPHIM Vl, TIFO02, JP,0.5MLSOL.INY': 'Typhim Vi',
-  'VERORAB, ANTIRRAB, FA 0.5ML+JP 0.5ML,1DS': 'Verorab',
-  'GARDASIL 9 - 0.5ML 1 DOSIS JP VPH': 'Gardasil 9',
-  'MMR II TRIPLE VIRAL SRP 1 DOSIS 1 0.5 ml': 'MMR II',
-  'PULMOVAX, NEUMOCOCO, SUSP, 1 DS, 0.5 ML': 'Pulmovax',
-  'VAQTA,HEPATITIS A, ADT,50U,FA 1ML': 'Vaqta adulto (solo A)',
-  'VARIVAX, VARICELA, FA, 1 DS, 0.5 ML': 'Varivax',
-  'BOOSTRIX, DPT ACELULAR, 1JP, 1DS, 0.5ML': 'Boostrix',
-  'ENGERIX B ADT,HEPATITISB,1 JP, 1DS, 1ML': 'Engerix-B adulto (solo B)',
-  'HAVRIX ADT, HEPATITISA14440u,1JP,1DS,1ML': 'Havrix adulto (solo A)',
-  'PRIORIX, TRIPLE VIRAL, JP, 1DS, 0.5ML': 'Priorix',
-  'PREVENAR 20': 'Prevenar 20',
-  'VAXIGRIP TETRA 1 SUSP INY 0.5ML 1D': 'Vaxigrip Tetra',
-  'FLUZACTAL TETRA, SUS,10 DS,1FCO,5ML': 'Fluzactal Tetra'
-};
+// El catálogo de Martin (Costos) llega hasta la fila 98: las mismas filas que
+// busca su hoja en D5:D12. Debajo viven otras listas (márgenes, horas, sedes).
+var ULTIMA_FILA_CATALOGO = 98;
 
-/** Sin acentos ni mayúsculas: la web escribe "sólo A", la hoja "solo A". */
+/** Sin acentos ni mayúsculas, para comparar nombres. */
 function normalizarNombre(s) {
   return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 }
 
-function nombreCortoV104(descripcion) {
-  if (MAPA_V104[descripcion]) return MAPA_V104[descripcion];
-  if (descripcion.indexOf('SHINGRIX') === 0) return 'Shingrix';
-  if (descripcion.indexOf('COMIRNATY Omicron XBB 1.5 30') === 0) return 'Comirnaty XBB adulto';
-  if (descripcion.indexOf('COMIRNATY Omicron XBB 1.5 10') === 0) return 'Comirnaty XBB pediatrico';
-  return '';
+/** Productos de Costos: código, descripción y costo. Leídos en vivo. */
+function filasCatalogo(libro) {
+  var costos = libro.getSheetByName('Costos');
+  return costos.getRange(3, 1, ULTIMA_FILA_CATALOGO - 2, 3).getValues()
+    .map(function (f) {
+      return { codigo: String(f[0] || '').trim(), descripcion: String(f[1] || '').trim(), costo: Number(f[2]) };
+    })
+    .filter(function (p) { return p.codigo && p.descripcion && p.descripcion !== 'NINGUNA'; });
 }
 
-/** Costos y margen mínimo, leídos en vivo de la V10.4. */
+/** Costos (por código y por descripción) y margen mínimo de la V10.4. */
 function leerV104() {
   var libro = SpreadsheetApp.openById(ID_V104);
-  var costos = libro.getSheetByName('Costos');
-  var filas = costos.getRange(3, 2, costos.getLastRow() - 2, 2).getValues();
-  var porNombre = {};
-  filas.forEach(function (f) {
-    var corto = nombreCortoV104(String(f[0] || '').trim());
-    var costo = Number(f[1]);
-    if (corto && isFinite(costo) && costo > 0) porNombre[normalizarNombre(corto)] = costo;
+  var porCodigo = {};
+  var porDescripcion = [];
+  filasCatalogo(libro).forEach(function (p) {
+    if (!isFinite(p.costo) || p.costo <= 0) return;
+    porCodigo[p.codigo] = p.costo;
+    porDescripcion.push([normalizarNombre(p.descripcion), p.costo]);
   });
 
   var cot = libro.getSheets().filter(function (h) {
@@ -78,28 +64,31 @@ function leerV104() {
   })[0] || libro.getSheets()[0];
   var margen = Number(cot.getRange('I2').getValue());
 
-  return { costos: porNombre, margenMinimo: isFinite(margen) ? margen : 0.2 };
+  return { porCodigo: porCodigo, porDescripcion: porDescripcion, margenMinimo: isFinite(margen) ? margen : 0.2 };
 }
 
 /**
- * Costo por dosis de un producto de la web. Los esquemas combinados
- * ("Havrix + Engerix-B") suman sus partes. null si falta alguna.
+ * Costo por dosis de un renglón. Se busca por CÓDIGO: Martin puede cambiar la
+ * descripción cuando quiera. Los renglones sin código (el simulador de ROI
+ * manda nombres comerciales) se buscan por el inicio de la descripción:
+ * "Shingrix" -> "SHINGRIX 1 DOSIS...". null si no se encuentra.
  */
-function costoProducto(v104, producto) {
-  var partes = String(producto || '').split('+');
-  var total = 0;
-  for (var i = 0; i < partes.length; i++) {
-    var n = normalizarNombre(partes[i]);
-    var c = v104.costos[n];
-    if (c === undefined) {
-      // "Havrix" en un combo es "Havrix adulto (solo A)" en la hoja.
-      var clave = Object.keys(v104.costos).filter(function (k) { return k.indexOf(n) === 0; })[0];
-      c = clave ? v104.costos[clave] : undefined;
-    }
-    if (c === undefined) return null;
-    total += c;
+function costoProducto(v104, linea) {
+  if (linea.codigo && v104.porCodigo[linea.codigo] !== undefined) return v104.porCodigo[linea.codigo];
+  var n = normalizarNombre(linea.producto);
+  if (!n) return null;
+  for (var i = 0; i < v104.porDescripcion.length; i++) {
+    if (v104.porDescripcion[i][0] === n || v104.porDescripcion[i][0].indexOf(n) === 0) return v104.porDescripcion[i][1];
   }
-  return total;
+  return null;
+}
+
+/** Catálogo para el cotizador en línea: sólo código y descripción, nunca costos. */
+function catalogo() {
+  var productos = filasCatalogo(SpreadsheetApp.openById(ID_V104)).map(function (p) {
+    return { codigo: p.codigo, descripcion: p.descripcion };
+  });
+  return { ok: true, productos: productos };
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +195,7 @@ function doPost(e) {
     var d = JSON.parse(e.postData.contents);
     if (d.tipo === 'pedirCodigo') return responder(pedirCodigo(d));
     if (d.tipo === 'verificarCodigo') return responder(verificarCodigo(d));
+    if (d.tipo === 'catalogo') return responder(catalogo());
     if (d.tipo !== 'cotizacion') return responder({ ok: true, ignorado: true });
     var usuario = leerSesion(d.sesion);
 
@@ -222,7 +212,7 @@ function doPost(e) {
     (d.lineas || []).forEach(function (l) {
       var dosis = Number(l.personas) || 0;
       var precio = Number(l.precioUnitario) || 0;
-      var costo = costoProducto(v104, l.producto);
+      var costo = costoProducto(v104, l);
       if (costo === null) faltaCosto = true;
       precioTotal += dosis * precio;
       costoTotal += dosis * (costo || 0);
