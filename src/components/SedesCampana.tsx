@@ -172,7 +172,12 @@ export function SedesCampana({
                       ? `Toma las dosis que no asignes a las demás sedes: ${costo?.dosis ?? 0} por ahora.`
                       : `Se aplican ${costo?.dosis ?? 0} aquí.`
                   }
-                  value={sede.dosis}
+                  // La sede que absorbe muestra las dosis que le tocan, en gris:
+                  // un "0" con la leyenda "100 por ahora" confundía. Si el
+                  // vendedor escribe encima, el número queda fijo; si lo borra,
+                  // vuelve a ser automático.
+                  value={i === absorbe ? (costo?.dosis ?? 0) : sede.dosis}
+                  automatico={i === absorbe}
                   onChange={(v) => setSedeCampo(i, 'dosis', v)}
                 />
               )}

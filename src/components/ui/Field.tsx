@@ -28,6 +28,11 @@ interface NumberFieldProps extends FieldBaseProps {
   /** Adorno a la derecha del input, p.ej. "$" o "%". */
   suffix?: string;
   prefix?: string;
+  /**
+   * El valor lo calcula el sistema, no el usuario: se ve en gris claro. Si el
+   * usuario escribe encima, pasa a ser un valor fijo como cualquier otro.
+   */
+  automatico?: boolean;
 }
 
 type FieldProps = TextFieldProps | NumberFieldProps;
@@ -89,7 +94,7 @@ export function Field(props: FieldProps) {
             onBlur={() => setTextoCrudo(null)}
             className={`${inputBase} ${props.prefix ? 'pl-7' : ''} ${
               props.suffix ? 'pr-9' : ''
-            }`}
+            } ${props.automatico && textoCrudo === null ? 'text-slate-400' : ''}`}
           />
           {props.suffix && (
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
