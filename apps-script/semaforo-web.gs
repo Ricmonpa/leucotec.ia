@@ -45,7 +45,16 @@ function filasCatalogo(libro) {
     .map(function (f) {
       return { codigo: String(f[0] || '').trim(), descripcion: String(f[1] || '').trim(), costo: Number(f[2]) };
     })
-    .filter(function (p) { return p.codigo && p.descripcion && p.descripcion !== 'NINGUNA'; });
+    .filter(function (p) {
+      // "ND" es como Martin marca lo descontinuado: no debe salir en la lista
+      // del cotizador, pero su costo sigue sirviendo para cotizaciones viejas.
+      return p.codigo && p.descripcion && p.descripcion !== 'NINGUNA';
+    });
+}
+
+/** Lo que el vendedor puede elegir hoy: sin descontinuados. */
+function esVigente(p) {
+  return !/^n\.?\/?d\.?$/i.test(p.descripcion);
 }
 
 /** Costos (por código y por descripción) y margen mínimo de la V10.4. */
@@ -85,7 +94,7 @@ function costoProducto(v104, linea) {
 
 /** Catálogo para el cotizador en línea: sólo código y descripción, nunca costos. */
 function catalogo() {
-  var productos = filasCatalogo(SpreadsheetApp.openById(ID_V104)).map(function (p) {
+  var productos = filasCatalogo(SpreadsheetApp.openById(ID_V104)).filter(esVigente).map(function (p) {
     return { codigo: p.codigo, descripcion: p.descripcion };
   });
   return { ok: true, productos: productos };

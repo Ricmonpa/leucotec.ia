@@ -120,11 +120,18 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
   BIS120089: { precio: 1800, enfermedad: 'Neumococo' }, // Prevenar 20
   BIS120028: { precio: 1400, enfermedad: 'Neumococo' }, // Pulmovax
   BIS120078: { precio: 3500, enfermedad: 'Herpes Zóster' }, // Shingrix
-  BIS120083: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB adulto
-  BIS120084: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB pediátrico
+  BIS120083: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB adulto (ND)
+  BIS120084: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB pediátrico (ND)
   'TMP-COMIRNATY-1': { enfermedad: 'COVID-19' },
   'TMP-COMIRNATY-2': { enfermedad: 'COVID-19' },
   'TMP-COMIRNATY-3': { enfermedad: 'COVID-19' },
+  // Altas de Martin, sep 2026. Falta que nos dé su precio de venta; mientras,
+  // el vendedor lo captura a mano. Los códigos son temporales: cuando Martin
+  // ponga los definitivos hay que actualizarlos aquí.
+  'TMP-COMIRNATY-4': { enfermedad: 'COVID-19', dosisPorCaja: 10 }, // XFG adulto
+  'TMP-COMIRNATY-5': { enfermedad: 'COVID-19', dosisPorCaja: 10 }, // XFG pediátrico
+  'TMP-VAXIGRIP': { enfermedad: 'Influenza' }, // Vaxigrip trivalente
+  'TMP-FLUZONE HD': { enfermedad: 'Influenza' }, // Fluzone High-Dose
   BIS120016: { precio: 1140, enfermedad: 'Hepatitis A/B' }, // Havrix adulto
   BIS120036: { precio: 1165, enfermedad: 'Hepatitis A/B' }, // Vaqta adulto
   BIS120009: { precio: 615, enfermedad: 'Hepatitis A/B' }, // Engerix-B adulto
