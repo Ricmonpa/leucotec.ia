@@ -23,7 +23,7 @@ import {
   type ParametrosEnfermedad,
   type ResultadoSimulacion,
 } from './calculations';
-import { enfermedadDeProducto } from './catalogoProductos';
+import { datosDe, enfermedadDeProducto } from './catalogoProductos';
 import { resumirCotizacion, type CotizacionImprimible } from './cotizacionImprimible';
 import { EMPRESA_INICIAL, ENFERMEDADES_INICIALES } from '../hooks/useRoiCalculator';
 
@@ -46,7 +46,9 @@ export function propuestaDesdeCotizacion(c: CotizacionImprimible): PropuestaRoi 
   // sueltos, dos presentaciones de influenza): se juntan en una sola.
   const grupos = new Map<string, { productos: string[]; dosis: number; importe: number; conocida: boolean }>();
   for (const l of resumen.lineas) {
-    const enfermedad = enfermedadDeProducto(l.producto);
+    // Primero por código (enlaces nuevos); los enlaces viejos traen sólo el
+    // nombre comercial.
+    const enfermedad = datosDe(l.codigo).enfermedad ?? enfermedadDeProducto(l.producto);
     const clave = enfermedad ?? l.producto;
     const g = grupos.get(clave) ?? { productos: [], dosis: 0, importe: 0, conocida: !!enfermedad };
     if (!g.productos.includes(l.producto)) g.productos.push(l.producto);

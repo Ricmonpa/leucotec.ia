@@ -25,7 +25,13 @@ import {
 
 /** Un renglón de biológico, tal cual lo capturó el vendedor. */
 export interface LineaCotizacion {
+  /** Descripción tal como la escribe Martin en su hoja. Es lo que ve el cliente. */
   producto: string;
+  /**
+   * Código del producto en la hoja de Martin (columna A de Costos). Es la
+   * llave: la descripción puede cambiar, el código no.
+   */
+  codigo?: string;
   dosis: number;
   /** Precio de venta por dosis. */
   precio: number;
@@ -112,7 +118,7 @@ interface CargaUtil {
   f?: string; // folio
   c?: string; // cliente
   e?: number; // empleados
-  l?: [string, number, number][]; // producto, dosis, precio
+  l?: [string, number, number, string?][]; // producto, dosis, precio, código
   // destino, dosis, foránea (1/0), jornada larga (1/0), enfermeras/día,
   // jornadas, transporte, comidas
   s?: [string, number, number, number, number, number, number, number][];
@@ -144,7 +150,7 @@ export function codificarCotizacion(c: CotizacionImprimible): string {
     f: c.folio,
     c: c.cliente,
     e: c.empleados,
-    l: c.lineas.map((l) => [l.producto, l.dosis, l.precio]),
+    l: c.lineas.map((l) => (l.codigo ? [l.producto, l.dosis, l.precio, l.codigo] : [l.producto, l.dosis, l.precio])),
     s: c.sedes.map((s) => [
       s.destino,
       s.dosis,
@@ -184,10 +190,11 @@ export function leerCotizacionImprimible(
     folio: String(carga.f || nuevoFolio()),
     cliente: String(carga.c || ''),
     empleados: num(carga.e),
-    lineas: carga.l.map(([producto, dosis, precio]) => ({
+    lineas: carga.l.map(([producto, dosis, precio, codigo]) => ({
       producto: String(producto || '').trim(),
       dosis: num(dosis),
       precio: num(precio),
+      ...(codigo ? { codigo: String(codigo) } : {}),
     })),
     sedes: (carga.s ?? []).map(([destino, dosis, foranea, larga, enf, dias, transporte, comidas]) => ({
       destino: String(destino || '').trim(),

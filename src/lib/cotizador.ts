@@ -169,6 +169,7 @@ export async function revisarMargenCotizacion(
         empleados: cotizacion.empleados,
         lineas: r.lineas.map((l) => ({
           producto: l.producto,
+          codigo: l.codigo,
           personas: l.dosis,
           precioUnitario: l.precio,
         })),

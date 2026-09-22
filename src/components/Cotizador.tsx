@@ -31,7 +31,8 @@ import {
 } from 'lucide-react';
 import { Field } from './ui/Field';
 import { SedesCampana } from './SedesCampana';
-import { PRODUCTOS_POR_ENFERMEDAD, dosisPorCaja } from '../lib/catalogoProductos';
+import { datosDe, dosisPorCaja } from '../lib/catalogoProductos';
+import { cargarCatalogo, catalogoGuardado, type ProductoHoja } from '../lib/catalogoHoja';
 import { descuadreDosis, formatNumber, sedeNueva, type Sede } from '../lib/calculations';
 import {
   codificarCotizacion,
@@ -78,8 +79,13 @@ type LineaCaptura = LineaCotizacion & { caja?: boolean };
  * haberlo capturado en dosis.
  */
 function enDosis(l: LineaCaptura): LineaCotizacion {
-  const k = l.caja ? dosisPorCaja(l.producto) : 1;
-  return { producto: l.producto, dosis: l.dosis * k, precio: k > 1 ? l.precio / k : l.precio };
+  const k = l.caja ? dosisPorCaja(l.codigo) : 1;
+  return {
+    producto: l.producto,
+    ...(l.codigo ? { codigo: l.codigo } : {}),
+    dosis: l.dosis * k,
+    precio: k > 1 ? l.precio / k : l.precio,
+  };
 }
 
 const lineaVacia = (): LineaCaptura => ({ producto: '', dosis: 0, precio: 0 });
@@ -116,12 +122,20 @@ function leerBorrador(): Borrador {
   return borradorNuevo();
 }
 
-/** Precio de lista por nombre comercial, para no cotizar de memoria. */
-const PRECIO_DE_LISTA: Record<string, number> = Object.fromEntries(
-  Object.values(PRODUCTOS_POR_ENFERMEDAD)
-    .flat()
-    .map((p) => [p.nombre, p.precio]),
-);
+/**
+ * Agrupa el catálogo de la hoja por enfermedad para el selector. Lo que no
+ * tiene enfermedad asignada (pediátricos, tuberculina…) va al final.
+ */
+function agruparCatalogo(catalogo: ProductoHoja[]): [string, ProductoHoja[]][] {
+  const grupos = new Map<string, ProductoHoja[]>();
+  for (const p of catalogo) {
+    const g = datosDe(p.codigo).enfermedad ?? 'Otros productos';
+    grupos.set(g, [...(grupos.get(g) ?? []), p]);
+  }
+  const otros = grupos.get('Otros productos');
+  grupos.delete('Otros productos');
+  return [...grupos.entries(), ...(otros ? [['Otros productos', otros] as [string, ProductoHoja[]]] : [])];
+}
 
 const dinero = (v: number) =>
   new Intl.NumberFormat('es-MX', {
@@ -203,6 +217,14 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
     }
   }, [b]);
 
+  // El catálogo lo mantiene Martin en su hoja. Se arranca con la copia local y
+  // se refresca en cuanto responde la hoja.
+  const [catalogo, setCatalogo] = useState<ProductoHoja[]>(catalogoGuardado);
+  useEffect(() => {
+    cargarCatalogo().then((c) => c && setCatalogo(c));
+  }, []);
+  const grupos = useMemo(() => agruparCatalogo(catalogo), [catalogo]);
+
   /**
    * Cualquier cambio invalida el semáforo. Un "OK" que quedó de un precio
    * anterior es peor que no tener semáforo: le da confianza al vendedor en un
@@ -239,17 +261,25 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
       lineas: x.lineas.map((l, j) => (j === i ? { ...l, [campo]: valor } : l)),
     }));
 
-  const elegirProducto = (i: number, producto: string) =>
+  const elegirProducto = (i: number, codigo: string) => {
+    const p = catalogo.find((x) => x.codigo === codigo);
     cambiar((x) => ({
       ...x,
       lineas: x.lineas.map((l, j) =>
         // Al elegir el producto se carga su precio de lista; el vendedor lo
         // puede ajustar, igual que en la hoja de Martin.
         j === i
-          ? { ...l, producto, caja: false, precio: PRECIO_DE_LISTA[producto] ?? l.precio }
+          ? {
+              ...l,
+              codigo: p?.codigo,
+              producto: p?.descripcion ?? '',
+              caja: false,
+              precio: datosDe(p?.codigo).precio ?? 0,
+            }
           : l,
       ),
     }));
+  };
 
   /**
    * Cambia entre dosis y cajas sin cambiar la campaña: 20 dosis a $950 pasan
@@ -260,7 +290,7 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
       ...x,
       lineas: x.lineas.map((l, j) => {
         if (j !== i || !!l.caja === caja) return l;
-        const k = dosisPorCaja(l.producto);
+        const k = dosisPorCaja(l.codigo);
         return caja
           ? { ...l, caja, dosis: l.dosis / k, precio: l.precio * k }
           : { ...l, caja, dosis: l.dosis * k, precio: l.precio / k };
@@ -409,27 +439,29 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
                       Vacuna {i + 1}
                     </label>
                     <select
-                      value={l.producto}
+                      value={l.codigo ?? ''}
                       onChange={(e) => elegirProducto(i, e.target.value)}
                       className={inputBase}
                     >
-                      <option value="">Elige el producto…</option>
-                      {Object.entries(PRODUCTOS_POR_ENFERMEDAD).map(([enfermedad, productos]) => (
+                      <option value="">
+                        {catalogo.length ? 'Elige el producto…' : 'Cargando el catálogo de la hoja…'}
+                      </option>
+                      {grupos.map(([enfermedad, productos]) => (
                         <optgroup key={enfermedad} label={enfermedad}>
                           {productos.map((p) => (
-                            <option key={p.nombre} value={p.nombre}>
-                              {p.nombre}
+                            <option key={p.codigo} value={p.codigo}>
+                              {p.descripcion}
                             </option>
                           ))}
                         </optgroup>
                       ))}
                     </select>
-                    {dosisPorCaja(l.producto) > 1 && (
+                    {dosisPorCaja(l.codigo) > 1 && (
                       <div className="mt-1.5 flex items-center gap-1 text-[11px]">
                         <span className="mr-1 text-slate-400">Capturar en:</span>
                         {[
                           [false, 'Dosis'],
-                          [true, `Cajas de ${dosisPorCaja(l.producto)}`],
+                          [true, `Cajas de ${dosisPorCaja(l.codigo)}`],
                         ].map(([enCaja, texto]) => (
                           <button
                             key={String(enCaja)}
