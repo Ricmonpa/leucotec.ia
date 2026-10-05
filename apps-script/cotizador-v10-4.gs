@@ -77,8 +77,19 @@ function folioSiguiente(h) {
  * Menu Leucotec > Cotizacion nueva. Escribe el folio siguiente y limpia al
  * cliente: lo que sigue capturado son las vacunas y la logistica, que el
  * vendedor suele reaprovechar.
+ *
+ * Pregunta antes, igual que el cotizador en linea: el nombre del cliente se
+ * borra y a media captura eso se siente como un error de la hoja.
  */
 function cotizacionNueva() {
+  var ui = SpreadsheetApp.getUi();
+  var r = ui.alert(
+    'Cotizacion nueva',
+    'Se genera un folio nuevo y se borra el nombre del cliente. Las vacunas y la logistica se quedan como estan. Continuar?',
+    ui.ButtonSet.YES_NO
+  );
+  if (r !== ui.Button.YES) return;
+
   var h = hojaCotizador();
   var folio = folioSiguiente(h);
   h.getRange(CELDA_FOLIO).setValue(folio);
