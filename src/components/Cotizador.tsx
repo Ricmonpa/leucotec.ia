@@ -31,13 +31,14 @@ import {
 } from 'lucide-react';
 import { Field } from './ui/Field';
 import { SedesCampana } from './SedesCampana';
-import { datosDe, dosisPorCaja } from '../lib/catalogoProductos';
+import { datosDe, dosisDeEsquema, dosisPorCaja, rangosDeEdad, tieneEsquema } from '../lib/catalogoProductos';
 import { cargarCatalogo, catalogoGuardado, type ProductoHoja } from '../lib/catalogoHoja';
 import { descuadreDosis, formatNumber, sedeNueva, type Sede } from '../lib/calculations';
 import {
   codificarCotizacion,
   nuevoFolio,
   resumirCotizacion,
+  type CondicionPago,
   type CotizacionImprimible,
   type LineaCotizacion,
 } from '../lib/cotizacionImprimible';
@@ -93,6 +94,8 @@ interface Borrador {
   costoDia?: number;
   lineas: LineaCaptura[];
   sedes: Sede[];
+  /** Contado o crédito. Martin: la tarjeta es aparte y opcional. */
+  pago?: CondicionPago;
 }
 
 /**
@@ -100,7 +103,11 @@ interface Borrador {
  * `dosis` son cajas y `precio` es por caja; la cotización siempre sale en
  * dosis (ver `enDosis`).
  */
-type LineaCaptura = LineaCotizacion & { caja?: boolean };
+type LineaCaptura = LineaCotizacion & {
+  caja?: boolean;
+  /** Esquema completo: todas las dosis del tratamiento, no sólo la inicial. */
+  esquema?: boolean;
+};
 
 /**
  * Convierte la captura a dosis. 2 cajas de 10 a $9,500 salen como 20 dosis a
@@ -109,11 +116,16 @@ type LineaCaptura = LineaCotizacion & { caja?: boolean };
  */
 function enDosis(l: LineaCaptura): LineaCotizacion {
   const k = l.caja ? dosisPorCaja(l.codigo) : 1;
+  // Esquema completo: 50 personas de Gardasil de 15 años o más son 150 dosis.
+  // El precio es siempre por dosis, así que no se divide.
+  const e = l.esquema ? dosisDeEsquema(l.codigo, l.rango) : 1;
+  const personas = l.dosis * k;
   return {
     producto: l.producto,
     ...(l.codigo ? { codigo: l.codigo } : {}),
-    dosis: l.dosis * k,
+    dosis: personas * e,
     precio: k > 1 ? l.precio / k : l.precio,
+    ...(e > 1 ? { personas, dosisPorPersona: e, ...(l.rango ? { rango: l.rango } : {}) } : {}),
   };
 }
 
@@ -126,6 +138,7 @@ function borradorNuevo(vendedor = ''): Borrador {
     cliente: '',
     empleados: 0,
     lineas: [lineaVacia()],
+    pago: 'Contado',
     // Arranca como la hoja de Martin: una sede local de 1 a 4 horas.
     sedes: [{ ...sedeNueva(), jornadaLarga: false }],
   };
@@ -272,6 +285,7 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
       cliente: b.cliente.trim(),
       empleados: b.empleados,
       lineas: b.lineas.map(enDosis),
+      pago: b.pago ?? 'Contado',
       sedes: b.sedes,
       cobrarLogistica: false,
       costoDia: b.costoDia || 0,
@@ -443,6 +457,19 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
                 value={b.empleados}
                 onChange={(v) => cambiar((x) => ({ ...x, empleados: v }))}
               />
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Condiciones de pago
+                </label>
+                <select
+                  value={b.pago ?? 'Contado'}
+                  onChange={(e) => cambiar((x) => ({ ...x, pago: e.target.value as CondicionPago }))}
+                  className={inputBase}
+                >
+                  <option value="Contado">Contado</option>
+                  <option value="Crédito">Crédito</option>
+                </select>
+              </div>
               <div className="sm:col-span-3">
                 <Field
                   verde
@@ -505,6 +532,54 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
                         </optgroup>
                       ))}
                     </select>
+                    {tieneEsquema(l.codigo) && (
+                      <div className="mt-1.5 space-y-1.5 rounded-lg bg-white p-2 ring-1 ring-slate-200">
+                        <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                          <span className="mr-1 text-slate-400">Cotizar:</span>
+                          {[
+                            [false, 'Dosis inicial'],
+                            [true, 'Esquema completo'],
+                          ].map(([completo, texto]) => (
+                            <button
+                              key={String(completo)}
+                              type="button"
+                              onClick={() => setLinea(i, 'esquema', completo as boolean)}
+                              className={`rounded-full px-2.5 py-0.5 font-semibold transition-colors ${
+                                !!l.esquema === completo
+                                  ? 'bg-brand-dark text-white'
+                                  : 'bg-white text-slate-500 ring-1 ring-slate-200 hover:text-brand-dark'
+                              }`}
+                            >
+                              {texto as string}
+                            </button>
+                          ))}
+                        </div>
+                        {rangosDeEdad(l.codigo).length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                            <span className="mr-1 text-slate-400">Edad:</span>
+                            {rangosDeEdad(l.codigo).map((rango) => (
+                              <button
+                                key={rango}
+                                type="button"
+                                onClick={() => setLinea(i, 'rango', rango)}
+                                className={`rounded-full px-2.5 py-0.5 font-semibold transition-colors ${
+                                  (l.rango ?? rangosDeEdad(l.codigo)[0]) === rango
+                                    ? 'bg-brand-dark text-white'
+                                    : 'bg-white text-slate-500 ring-1 ring-slate-200 hover:text-brand-dark'
+                                }`}
+                              >
+                                {rango}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[11px] leading-snug text-slate-400">
+                          {l.esquema
+                            ? `Esquema completo: ${dosisDeEsquema(l.codigo, l.rango)} dosis por persona. Aparta precio y biológico para todo el tratamiento.`
+                            : 'Sólo la primera dosis. El refuerzo se cotiza después.'}
+                        </p>
+                      </div>
+                    )}
                     {dosisPorCaja(l.codigo) > 1 && (
                       <div className="mt-1.5 flex items-center gap-1 text-[11px]">
                         <span className="mr-1 text-slate-400">Capturar en:</span>
@@ -531,13 +606,14 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
                   <Field
                     verde
                     type="number"
-                    label={l.caja ? 'Cajas' : 'Dosis'}
+                    label={l.caja ? 'Cajas' : l.esquema ? 'Personas' : 'Dosis'}
                     min={0}
                     value={l.dosis}
                     onChange={(v) => setLinea(i, 'dosis', v)}
                     hint={
-                      l.caja && l.dosis > 0
-                        ? `= ${formatNumber(enDosis(l).dosis)} dosis a ${dinero(enDosis(l).precio)}`
+                      l.dosis > 0 && (l.caja || l.esquema)
+                        ? `= ${formatNumber(enDosis(l).dosis)} dosis` +
+                          (l.caja ? ` a ${dinero(enDosis(l).precio)}` : '')
                         : undefined
                     }
                     className="col-span-5 sm:col-span-2"
@@ -554,7 +630,9 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
                   />
                   <div className="col-span-12 flex items-center justify-end gap-1 sm:col-span-2 sm:pb-2.5">
                     <span className="text-right text-sm font-bold tabular-nums text-brand-dark">
-                      {l.dosis * l.precio > 0 ? dinero(l.dosis * l.precio) : '—'}
+                      {enDosis(l).dosis * enDosis(l).precio > 0
+                        ? dinero(enDosis(l).dosis * enDosis(l).precio)
+                        : '—'}
                     </span>
                     {b.lineas.length > 1 && (
                       <button

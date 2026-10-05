@@ -44,24 +44,30 @@ export function propuestaDesdeCotizacion(c: CotizacionImprimible): PropuestaRoi 
 
   // Varios renglones pueden ser de la misma enfermedad (Havrix y Engerix-B
   // sueltos, dos presentaciones de influenza): se juntan en una sola.
-  const grupos = new Map<string, { productos: string[]; dosis: number; importe: number; conocida: boolean }>();
+  // Se cuenta por PERSONAS, no por dosis: con esquema completo, 150 dosis de
+  // Gardasil protegen a 50 personas, no a 150. Sin esquema son el mismo
+  // número. (Cleide y Martin, oct 2026.)
+  const grupos = new Map<
+    string,
+    { productos: string[]; personas: number; importe: number; conocida: boolean }
+  >();
   for (const l of resumen.lineas) {
     // Primero por código (enlaces nuevos); los enlaces viejos traen sólo el
     // nombre comercial.
     const enfermedad = datosDe(l.codigo).enfermedad ?? enfermedadDeProducto(l.producto);
     const clave = enfermedad ?? l.producto;
-    const g = grupos.get(clave) ?? { productos: [], dosis: 0, importe: 0, conocida: !!enfermedad };
+    const g = grupos.get(clave) ?? { productos: [], personas: 0, importe: 0, conocida: !!enfermedad };
     if (!g.productos.includes(l.producto)) g.productos.push(l.producto);
-    g.dosis += l.dosis;
+    g.personas += l.personas ?? l.dosis;
     g.importe += l.importe;
     grupos.set(clave, g);
   }
 
-  // La plantilla nunca puede ser menor a las dosis de una vacuna: si el
+  // La plantilla nunca puede ser menor a las personas de una vacuna: si el
   // vendedor no la capturó, o la capturó corta, el % en riesgo se topa en 100%
   // y la inversión dejaría de cuadrar con la cotización.
-  const mayorDosis = Math.max(0, ...[...grupos.values()].map((g) => g.dosis));
-  const numEmpleados = Math.max(c.empleados || 0, mayorDosis, 1);
+  const mayorGrupo = Math.max(0, ...[...grupos.values()].map((g) => g.personas));
+  const numEmpleados = Math.max(c.empleados || 0, mayorGrupo, 1);
 
   const costoDiaCapturado = (c.costoDia ?? 0) > 0;
   const empresa: ParametrosEmpresa = {
@@ -76,13 +82,14 @@ export function propuestaDesdeCotizacion(c: CotizacionImprimible): PropuestaRoi 
   const sinModelo: string[] = [];
   const enfermedades: ParametrosEnfermedad[] = [...grupos.entries()].map(([clave, g]) => {
     const base = ENFERMEDADES_INICIALES.find((e) => e.nombre === clave);
-    // Con pct = dosis / plantilla, el motor reconstruye exactamente las dosis;
-    // con precio = importe / dosis, reconstruye exactamente el importe.
+    // Con pct = personas / plantilla el motor reconstruye a cuánta gente
+    // protege, y con costo = importe / personas reconstruye exactamente el
+    // importe de la cotización, lleve una dosis o el esquema completo.
     const cotizado = {
       activa: true,
       producto: g.productos.join(' + '),
-      costoDosis: g.dosis > 0 ? g.importe / g.dosis : 0,
-      pctPoblacionRiesgo: g.dosis / numEmpleados,
+      costoDosis: g.personas > 0 ? g.importe / g.personas : 0,
+      pctPoblacionRiesgo: g.personas / numEmpleados,
     };
 
     if (g.conocida && base) return { ...base, ...cotizado };

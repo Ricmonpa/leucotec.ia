@@ -206,7 +206,15 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
           {r.lineas.map((l, i) => (
             <tr key={`${l.producto}-${i}`}>
               <td className={`${td} w-6 text-slate-400`}>{i + 1}</td>
-              <td className={`${td} font-semibold text-brand-dark`}>{l.producto}</td>
+              <td className={`${td} font-semibold text-brand-dark`}>
+                {l.producto}
+                {(l.dosisPorPersona ?? 1) > 1 && (
+                  <span className="block font-normal text-slate-500">
+                    Esquema completo · {formatNumber(l.personas ?? 0)} personas ×{' '}
+                    {l.dosisPorPersona} dosis{l.rango ? ` · ${l.rango}` : ''}
+                  </span>
+                )}
+              </td>
               <td className={`${td} ${der}`}>{formatNumber(l.dosis)}</td>
               <td className={`${td} ${der}`}>{dinero(l.precio)}</td>
               <td className={`${td} ${der} font-bold text-brand-dark`}>{dinero(l.importe)}</td>
@@ -413,6 +421,11 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
             Los residuos peligrosos biológico-infecciosos se manejan conforme a la NOM-087-SEMARNAT-SSA1-2002,
             con recolección por empresa autorizada.
           </li>
+          {cotizacion.pago && (
+            <li>
+              Condiciones de pago: <strong className="text-brand-dark">{cotizacion.pago}</strong>.
+            </li>
+          )}
           <li>El pago con tarjeta causa un cargo adicional por comisión bancaria.</li>
           <li>Las jornadas se programan de común acuerdo con al menos 5 días hábiles de anticipación.</li>
         </ul>

@@ -35,7 +35,21 @@ export interface LineaCotizacion {
   dosis: number;
   /** Precio de venta por dosis. */
   precio: number;
+  /**
+   * Personas a vacunar en este renglón. Cuando el producto lleva esquema de
+   * varias dosis (VPH, Herpes Zóster), dosis = personas x dosisPorPersona.
+   * La cotización lo imprime para que quede claro cómo se cotizó, y el
+   * retorno de la inversión cuenta personas, no dosis.
+   */
+  personas?: number;
+  /** Dosis por persona del esquema cotizado. 1 = sólo la dosis inicial. */
+  dosisPorPersona?: number;
+  /** Rango de edad del esquema, cuando el producto depende de la edad. */
+  rango?: string;
 }
+
+/** Condición de pago de la venta (Martin, oct 2026: la tarjeta va aparte). */
+export type CondicionPago = 'Contado' | 'Crédito';
 
 export interface CotizacionImprimible {
   folio: string;
@@ -49,6 +63,8 @@ export interface CotizacionImprimible {
    * del precio por dosis y la cotización enumera todo como "Incluido".
    */
   cobrarLogistica: boolean;
+  /** Contado o crédito. Sale impreso en las condiciones de la cotización. */
+  pago?: CondicionPago;
   /**
    * Lo que le cuesta a la empresa un día sin un empleado. No sale en la
    * cotización: lo usa la propuesta de retorno. 0 si no se capturó.
@@ -133,11 +149,13 @@ interface CargaUtil {
   f?: string; // folio
   c?: string; // cliente
   e?: number; // empleados
-  l?: [string, number, number, string?][]; // producto, dosis, precio, código
+  // producto, dosis, precio, código, personas, dosis por persona, rango
+  l?: [string, number, number, string?, number?, number?, string?][];
   // destino, dosis, foránea (1/0), jornada larga (1/0), enfermeras/día,
   // jornadas, transporte, comidas
   s?: [string, number, number, number, number, number, number, number][];
   cl?: number; // cobrar logística (1/0)
+  pg?: string; // condición de pago: "Contado" o "Crédito"
   d?: number; // costo por día de ausencia de un empleado
 }
 
@@ -165,7 +183,15 @@ export function codificarCotizacion(c: CotizacionImprimible): string {
     f: c.folio,
     c: c.cliente,
     e: c.empleados,
-    l: c.lineas.map((l) => (l.codigo ? [l.producto, l.dosis, l.precio, l.codigo] : [l.producto, l.dosis, l.precio])),
+    l: c.lineas.map((l) =>
+      // El renglón crece sólo cuando hace falta: el enlace se arma dentro de
+      // una celda de Sheets y no conviene inflarlo.
+      (l.dosisPorPersona ?? 1) > 1
+        ? [l.producto, l.dosis, l.precio, l.codigo ?? '', l.personas ?? 0, l.dosisPorPersona ?? 1, l.rango ?? '']
+        : l.codigo
+          ? [l.producto, l.dosis, l.precio, l.codigo]
+          : [l.producto, l.dosis, l.precio],
+    ),
     s: c.sedes.map((s) => [
       s.destino,
       s.dosis,
@@ -177,6 +203,7 @@ export function codificarCotizacion(c: CotizacionImprimible): string {
       s.comidas,
     ]),
     cl: c.cobrarLogistica ? 1 : 0,
+    ...(c.pago ? { pg: c.pago } : {}),
     d: c.costoDia || 0,
   };
   return aBase64Url(JSON.stringify(carga));
@@ -205,11 +232,14 @@ export function leerCotizacionImprimible(
     folio: String(carga.f || nuevoFolio()),
     cliente: String(carga.c || ''),
     empleados: num(carga.e),
-    lineas: carga.l.map(([producto, dosis, precio, codigo]) => ({
+    lineas: carga.l.map(([producto, dosis, precio, codigo, personas, porPersona, rango]) => ({
       producto: String(producto || '').trim(),
       dosis: num(dosis),
       precio: num(precio),
       ...(codigo ? { codigo: String(codigo) } : {}),
+      ...(num(personas) > 0 ? { personas: num(personas) } : {}),
+      ...(num(porPersona) > 1 ? { dosisPorPersona: num(porPersona) } : {}),
+      ...(rango ? { rango: String(rango) } : {}),
     })),
     sedes: (carga.s ?? []).map(([destino, dosis, foranea, larga, enf, dias, transporte, comidas]) => ({
       destino: String(destino || '').trim(),
@@ -222,6 +252,7 @@ export function leerCotizacionImprimible(
       comidas: num(comidas),
     })),
     cobrarLogistica: carga.cl === 1,
+    ...(carga.pg === 'Contado' || carga.pg === 'Crédito' ? { pago: carga.pg } : {}),
     costoDia: num(carga.d),
   };
 }

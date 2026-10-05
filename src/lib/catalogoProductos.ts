@@ -107,11 +107,15 @@ export function enfermedadDeProducto(producto: string): string | undefined {
  *   inversión sin ahorro.
  * - dosisPorCaja: si se puede cotizar en cajas (Martin, sep 2026: Comirnaty
  *   en cajas de 10).
+ * - esquema: dosis por persona del esquema completo. Un número si es igual
+ *   para todos, o una tabla por rango de edad. Es dato clínico del
+ *   laboratorio, no comercial: no se negocia ni se oculta.
  */
 export interface DatosProducto {
   precio?: number;
   enfermedad?: string;
   dosisPorCaja?: number;
+  esquema?: number | Record<string, number>;
 }
 
 export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
@@ -119,7 +123,7 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
   BIS120026: { precio: 330, enfermedad: 'Influenza' }, // Fluzactal Tetra
   BIS120089: { precio: 1800, enfermedad: 'Neumococo' }, // Prevenar 20
   BIS120028: { precio: 1400, enfermedad: 'Neumococo' }, // Pulmovax
-  BIS120078: { precio: 3500, enfermedad: 'Herpes Zóster' }, // Shingrix
+  BIS120078: { precio: 3500, enfermedad: 'Herpes Zóster', esquema: 2 }, // Shingrix
   BIS120083: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB adulto (ND)
   BIS120084: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB pediátrico (ND)
   'TMP-COMIRNATY-1': { enfermedad: 'COVID-19' },
@@ -137,7 +141,8 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
   BIS120009: { precio: 615, enfermedad: 'Hepatitis A/B' }, // Engerix-B adulto
   BIS120040: { enfermedad: 'Hepatitis A/B' }, // Twinrix
   BIS12011: { precio: 3070, enfermedad: 'Fiebre Amarilla' }, // Stamaril
-  BIS120081: { precio: 3700, enfermedad: 'VPH' }, // Gardasil 9
+  // Gardasil 9: 2 dosis de 9 a 14 años, 3 de los 15 en adelante.
+  BIS120081: { precio: 3700, enfermedad: 'VPH', esquema: { '9 a 14 años': 2, '15 años y más': 3 } },
   BIS120001: { precio: 650, enfermedad: 'Td / DPT' }, // Adacel Boost
   BIS120006: { precio: 610, enfermedad: 'Td / DPT' }, // Boostrix
   BIS120019: { precio: 3000, enfermedad: 'Meningococo' }, // Menactra
@@ -156,3 +161,29 @@ export const datosDe = (codigo?: string): DatosProducto =>
 export function dosisPorCaja(codigo?: string): number {
   return datosDe(codigo).dosisPorCaja ?? 1;
 }
+
+// ---------------------------------------------------------------------------
+// Esquemas de varias dosis (Cleide y Martin, oct 2026).
+//
+// El cliente elige entre cotizar sólo la dosis inicial o el esquema completo:
+// con el esquema completo aparta precio y biológico para todo el tratamiento.
+// Hoy sólo aplica a VPH y Herpes Zóster; lo demás es una dosis por persona.
+// ---------------------------------------------------------------------------
+
+/** Rangos de edad del producto, vacío si su esquema no depende de la edad. */
+export function rangosDeEdad(codigo?: string): string[] {
+  const e = datosDe(codigo).esquema;
+  return e && typeof e === 'object' ? Object.keys(e) : [];
+}
+
+/** Dosis por persona del esquema completo; 1 si el producto es de dosis única. */
+export function dosisDeEsquema(codigo?: string, rango?: string): number {
+  const e = datosDe(codigo).esquema;
+  if (!e) return 1;
+  if (typeof e === 'number') return e;
+  // Sin rango elegido se toma el primero: es el más conservador de los dos.
+  return e[rango ?? ''] ?? Object.values(e)[0] ?? 1;
+}
+
+/** True si el producto se puede cotizar con esquema completo. */
+export const tieneEsquema = (codigo?: string): boolean => dosisDeEsquema(codigo) > 1;
