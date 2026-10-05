@@ -51,6 +51,12 @@ var VERDE = '#D9EAD3';
 // editen dosis o precios.
 var CELDA_FOLIO = 'B44';
 
+// Condiciones de pago (Martin, oct 2026): "solo seria establecer que la venta
+// es a credito o contado, la opcion de tarjeta es opcional". El recargo por
+// tarjeta sigue en G3, aparte.
+var CELDA_PAGO = 'B43';
+var PAGOS = ['Contado', 'Crédito'];
+
 // Lo que devuelve el enlace cuando todavia no hay folio. Tiene que decirlo,
 // no inventarlo: dos cotizaciones con el mismo numero descuadran el control.
 var AVISO_FOLIO = 'Genera el folio desde el menu Leucotec';
@@ -167,7 +173,7 @@ function codigosTemporales() {
 function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente) {
   var h = hojaCotizador();
 
-  var filas = h.getRange('B5:J12').getValues();
+  var filas = h.getRange('B5:N12').getValues();
   var codigos = codigosPorDescripcion();
   var lineas = [];
   for (var f = 0; f < filas.length; f++) {
@@ -180,7 +186,15 @@ function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente
     // La descripción viaja tal como la escribe Martin: es lo que ve el
     // cliente. El código es la llave para el retorno de inversión.
     var cod = codigos[d];
-    lineas.push(cod ? [d, dos, pre, cod] : [d, dos, pre]);
+    // Con esquema completo viajan tambien las personas: la cotizacion imprime
+    // como se cotizo y el retorno de la inversion cuenta personas, no dosis.
+    var porPersona = Number(filas[f][12]) || 1;
+    if (porPersona > 1) {
+      lineas.push([d, dos, pre, cod || '', Math.round(dos / porPersona), porPersona,
+        String(filas[f][11] || '').trim()]);
+    } else {
+      lineas.push(cod ? [d, dos, pre, cod] : [d, dos, pre]);
+    }
   }
   if (!lineas.length) return '';
 
@@ -213,6 +227,7 @@ function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente
     l: lineas,
     s: s,
     cl: 0, // la operacion va dentro del precio por dosis: se enumera como "Incluido"
+    pg: String(h.getRange(CELDA_PAGO).getValue() || '').trim(),
     d: Number(h.getRange('B48').getValue()) || 0 // costo dia: solo lo usa la propuesta de ROI
   };
   var b64 = Utilities.base64EncodeWebSafe(JSON.stringify(carga), Utilities.Charset.UTF_8)
@@ -238,6 +253,17 @@ function prepararEnlace() {
   h.getRange('A45:F53').breakApart();
   h.getRange('A45:F53').clearContent().clearFormat();
 
+  // Condiciones de pago: dato del documento, no del calculo.
+  h.getRange('A43').setValue('CONDICIONES DE PAGO').setFontWeight('bold');
+  if (PAGOS.indexOf(String(h.getRange(CELDA_PAGO).getValue() || '').trim()) === -1) {
+    h.getRange(CELDA_PAGO).setValue(PAGOS[0]);
+  }
+  h.getRange(CELDA_PAGO)
+    .setDataValidation(SpreadsheetApp.newDataValidation()
+      .requireValueInList(PAGOS, true).setAllowInvalid(false).build())
+    .setBackground(VERDE)
+    .setBorder(true, true, true, true, true, true);
+
   // El folio vive arriba del bloque del cliente. Si ya hay uno, se respeta:
   // una cotizacion a medias no debe cambiar de numero.
   h.getRange('A44').setValue('FOLIO').setFontWeight('bold');
@@ -258,7 +284,7 @@ function prepararEnlace() {
     .setBorder(true, true, true, true, true, true);
 
   // El boton que importa: la cotizacion es el producto final del proceso.
-  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B44:B48;I5:I12';
+  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B43:B48;I5:I12;L5:N12';
   h.getRange('A50').setValue('COTIZACION').setFontWeight('bold');
   h.getRange('B50:F50').merge();
   h.getRange('B50')
@@ -313,6 +339,8 @@ function protegerHoja() {
     h.getRange('G38:G41'), // transporte
     h.getRange('I38:I41'), // comidas
     h.getRange('B46:B48'), // datos para el ROI
+    h.getRange(CELDA_PAGO), // contado o credito
+    h.getRange('L5:M12'),  // esquema y rango de edad
     h.getRange(CELDA_FOLIO) // folio: lo escribe el menu, que corre como el vendedor
   ]);
 
@@ -430,9 +458,33 @@ var FILAS_EXTRA_CATALOGO = 60;
 // $9,500 = 20 dosis a $950. Aprobado por Martin (sep 2026). Solo aplica a las
 // presentaciones "COMIRNATY Omicron XBB" (caja con 10 viales de 1 dosis).
 var UNIDAD_CAJA = 'CAJA 10';
+
+// Esquemas de varias dosis (Cleide y Martin, oct 2026). El cliente elige
+// entre cotizar la dosis inicial o el esquema completo; con el esquema
+// completo aparta precio y biologico para todo el tratamiento. La hoja saca
+// las dosis: 50 personas de Gardasil de 15 anos o mas son 150 dosis.
+var ESQUEMA_COMPLETO = 'Esquema completo';
+var ESQUEMA_INICIAL = 'Dosis inicial';
+var HOJA_ESQUEMAS = 'Esquemas';
+// Codigo, rango de edad (vacio = cualquiera) y dosis por persona. Dato
+// clinico del laboratorio, no comercial.
+var ESQUEMAS = [
+  ['BIS120081', '9 a 14 años', 2],   // Gardasil 9
+  ['BIS120081', '15 años y más', 3], // Gardasil 9
+  ['BIS120078', '', 2]               // Shingrix
+];
+var RANGOS_EDAD = ['9 a 14 años', '15 años y más'];
 var PRODUCTO_CON_CAJA = 'COMIRNATY Omicron XBB';
 
 /** Factor de la fila f: 10 si esa fila se capturo en cajas de Comirnaty. */
+/**
+ * Dosis por persona del renglon (columna N). MAX(1;...) es un seguro: si la
+ * columna todavia no existe, una dosis por persona y nada cambia.
+ */
+function factorEsquema(f) {
+  return 'MAX(1;$N' + f + ')';
+}
+
 function factorCaja(f) {
   return 'IF(AND($I' + f + '="' + UNIDAD_CAJA + '";ISNUMBER(SEARCH("' + PRODUCTO_CON_CAJA + '";$B' + f + ')));10;1)';
 }
@@ -456,7 +508,7 @@ function aplicarAjustesAprobados() {
     // capturo con punto en una hoja de coma decimal, se convierte; si no hay
     // costo (vacio, "TBD", producto fuera del catalogo), vale 0 y lo marca K.
     var busca = 'VLOOKUP(B' + f + ';Costos!B$3:C$' + ultima + ';2;FALSE)';
-    var factor = factorCaja(f);
+    var factor = factorCaja(f) + '*' + factorEsquema(f);
     h.getRange('D' + f).setFormula(
       '=IF(OR(B' + f + '="";B' + f + '="NINGUNA");0;' +
       'IFERROR(' + busca + '*' + factor + ';' +
@@ -546,7 +598,7 @@ function aplicarUnidadCaja() {
     .setBorder(true, true, true, true, true, true);
 
   for (var f = 5; f <= 12; f++) {
-    h.getRange('J' + f).setFormula('=C' + f + '*' + factorCaja(f));
+    h.getRange('J' + f).setFormula('=C' + f + '*' + factorCaja(f) + '*' + factorEsquema(f));
   }
   h.getRange('J5:J12').setHorizontalAlignment('center').setFontColor('#666666')
     .setBorder(true, true, true, true, true, true);
@@ -565,6 +617,71 @@ function aplicarUnidadCaja() {
   h.setConditionalFormatRules(reglas);
 }
 
+/**
+ * Esquema de varias dosis por renglon: L = esquema, M = rango de edad,
+ * N = dosis por persona (se calcula).
+ *
+ * C sigue siendo lo que captura el vendedor; con esquema completo son
+ * PERSONAS. Las dosis reales viven en J, como con las cajas, y de ahi cuelgan
+ * el total, los insumos y la logistica. El precio unitario (G) es por dosis,
+ * asi que H multiplica por el esquema.
+ *
+ * Es idempotente: se puede correr las veces que sea.
+ */
+function aplicarEsquemas() {
+  var libro = SpreadsheetApp.getActiveSpreadsheet();
+  var h = hojaCotizador();
+
+  // Tabla de esquemas en su propia hoja, oculta y protegida como las demas.
+  var e = libro.getSheetByName(HOJA_ESQUEMAS) || libro.insertSheet(HOJA_ESQUEMAS);
+  e.clear();
+  // D y E son las columnas que busca la hoja: clave (codigo|rango) y dosis.
+  e.getRange('A1:E1')
+    .setValues([['Codigo', 'Rango de edad', 'Dosis por persona', 'Clave', 'Dosis']])
+    .setFontWeight('bold');
+  for (var i = 0; i < ESQUEMAS.length; i++) {
+    var fila = i + 2;
+    e.getRange(fila, 1, 1, 3).setValues([ESQUEMAS[i]]);
+    e.getRange(fila, 4).setFormula('=A' + fila + '&"|"&B' + fila);
+    e.getRange(fila, 5).setFormula('=C' + fila);
+  }
+  e.hideSheet();
+
+  // Encabezados, con el mismo formato que los de Martin.
+  h.getRange('H4').copyTo(h.getRange('L4:N4'), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  h.getRange('L4:N4').setValues([['ESQUEMA', 'RANGO DE EDAD', 'DOSIS X PERSONA']]);
+
+  var esquema = h.getRange('L5:L12');
+  esquema.setValues(esquema.getValues().map(function (r) {
+    return [r[0] === ESQUEMA_COMPLETO ? ESQUEMA_COMPLETO : ESQUEMA_INICIAL];
+  }));
+  esquema.setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList([ESQUEMA_INICIAL, ESQUEMA_COMPLETO], true).setAllowInvalid(false).build());
+  h.getRange('M5:M12').setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList(RANGOS_EDAD, true).setAllowInvalid(true).build());
+  h.getRange('L5:M12').setBackground(VERDE).setHorizontalAlignment('center')
+    .setBorder(true, true, true, true, true, true);
+
+  for (var f = 5; f <= 12; f++) {
+    // El codigo del producto es la llave; la descripcion puede cambiar.
+    var cod = 'IFERROR(INDEX(Costos!$A:$A;MATCH($B' + f + ';Costos!$B:$B;0));"")';
+    var clave = cod + '&"|"&$M' + f;
+    var soloCod = cod + '&"|"';
+    h.getRange('N' + f).setFormula(
+      '=IF($L' + f + '<>"' + ESQUEMA_COMPLETO + '";1;' +
+      'IFERROR(VLOOKUP(' + clave + ';' + HOJA_ESQUEMAS + '!$D:$E;2;FALSE);' +
+      'IFERROR(VLOOKUP(' + soloCod + ';' + HOJA_ESQUEMAS + '!$D:$E;2;FALSE);1)))'
+    );
+    // El precio unitario es por DOSIS: con esquema completo, el importe del
+    // renglon son todas las dosis del tratamiento.
+    h.getRange('H' + f).setFormula(
+      '=IF(B' + f + '="NINGUNA";0;G' + f + '*C' + f + '*' + factorEsquema(f) + ')'
+    );
+  }
+  h.getRange('N5:N12').setHorizontalAlignment('center').setFontColor('#666666')
+    .setBorder(true, true, true, true, true, true);
+}
+
 /** A que rango apunta la lista desplegable de una celda (para verificar). */
 function listaDe(celda) {
   var dv = celda.getDataValidation();
@@ -580,7 +697,7 @@ function listaDe(celda) {
  */
 function protegerInternas() {
   var libro = SpreadsheetApp.getActiveSpreadsheet();
-  ['Costos', 'Insumos'].forEach(function (nombre) {
+  ['Costos', 'Insumos', HOJA_ESQUEMAS].forEach(function (nombre) {
     var hoja = libro.getSheetByName(nombre);
     if (!hoja) return;
     hoja.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(function (p) { p.remove(); });
@@ -600,6 +717,7 @@ function conectar() {
   prepararEnlace();
   codigosTemporales();
   repararCostosFaltantes();
+  aplicarEsquemas();
   aplicarAjustesAprobados();
   aplicarUnidadCaja();
   aplicarRevisionDosis();
