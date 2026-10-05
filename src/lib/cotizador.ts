@@ -12,7 +12,7 @@
 
 import { descuadreDosis, type ParametrosEmpresa, type ResultadoSimulacion } from './calculations';
 import type { ParametrosEnfermedad } from './calculations';
-import { resumirCotizacion, type CotizacionImprimible } from './cotizacionImprimible';
+import { nuevoFolio, resumirCotizacion, type CotizacionImprimible } from './cotizacionImprimible';
 
 /**
  * URL del Apps Script del cotizador. Es distinta a la del registro de leads:
@@ -46,17 +46,6 @@ export function cotizadorConfigurado(): boolean {
 const fechaMX = () =>
   new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
 
-function nuevoFolio(): string {
-  const d = new Date();
-  const sello = [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, '0'),
-    String(d.getDate()).padStart(2, '0'),
-    String(d.getHours()).padStart(2, '0'),
-    String(d.getMinutes()).padStart(2, '0'),
-  ].join('');
-  return `COT-${sello}`;
-}
 
 /**
  * Manda la cotización al Sheet y devuelve el semáforo.

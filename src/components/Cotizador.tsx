@@ -50,6 +50,35 @@ import { MAX_SEDES } from '../hooks/useRoiCalculator';
 const MAX_LINEAS = 8;
 
 const CLAVE_BORRADOR = 'leucotec.cotizador.borrador';
+/**
+ * Folios ya ocupados en este navegador. Sirven para dos cosas: que dos
+ * cotizaciones del mismo minuto no compartan folio, y para avisar cuando se
+ * intenta imprimir otra vez con un folio que ya salió impreso.
+ */
+const CLAVE_FOLIOS = 'leucotec.cotizador.folios';
+
+function foliosUsados(): string[] {
+  try {
+    const crudo = localStorage.getItem(CLAVE_FOLIOS);
+    const lista = crudo ? (JSON.parse(crudo) as string[]) : [];
+    return Array.isArray(lista) ? lista : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Se apunta el folio al imprimirlo o al guardarlo: ya no se puede reusar. */
+function apuntarFolio(folio: string) {
+  try {
+    const lista = foliosUsados();
+    if (!lista.includes(folio)) {
+      // Se guardan los últimos 200: alcanza para el historial de un vendedor.
+      localStorage.setItem(CLAVE_FOLIOS, JSON.stringify([...lista, folio].slice(-200)));
+    }
+  } catch {
+    /* sin almacenamiento: no se puede llevar la cuenta */
+  }
+}
 
 interface Borrador {
   /**
@@ -92,7 +121,7 @@ const lineaVacia = (): LineaCaptura => ({ producto: '', dosis: 0, precio: 0 });
 
 function borradorNuevo(vendedor = ''): Borrador {
   return {
-    folio: nuevoFolio(),
+    folio: nuevoFolio(new Date(), foliosUsados()),
     vendedor,
     cliente: '',
     empleados: 0,
@@ -113,7 +142,7 @@ function leerBorrador(): Borrador {
     if (crudo) {
       const b = JSON.parse(crudo) as Borrador;
       if (Array.isArray(b.lineas) && Array.isArray(b.sedes) && b.sedes.length) {
-        return { ...b, folio: b.folio || nuevoFolio() };
+        return { ...b, folio: b.folio || nuevoFolio(new Date(), foliosUsados()) };
       }
     }
   } catch {
@@ -308,11 +337,30 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
     const envio = await revisarMargenCotizacion(cotizacion, b.vendedor.trim() || sesion.correo, sesion.token);
     setEstado(envio.estado);
     setMargen(envio.margen ?? null);
+    // Queda en el historial de Leucotec con este folio: ya no se reusa.
+    if (envio.estado !== 'SIN_CONEXION') apuntarFolio(envio.folio);
     setRevisando(false);
   }
 
+  /**
+   * Imprime, y deja el folio apartado. Si ese folio ya se imprimió, se ofrece
+   * uno nuevo: dos cotizaciones distintas con el mismo número descuadran el
+   * control de Leucotec.
+   */
   function imprimir() {
-    window.open(`/cotizacion?c=${codificarCotizacion(cotizacion)}`, '_blank', 'noopener');
+    let actual = cotizacion;
+    if (foliosUsados().includes(b.folio)) {
+      const seguir = window.confirm(
+        `El folio ${b.folio} ya se imprimió. ¿Generar un folio nuevo para esta cotización?`,
+      );
+      if (seguir) {
+        const folio = nuevoFolio(new Date(), foliosUsados());
+        setB((x) => ({ ...x, folio }));
+        actual = { ...cotizacion, folio };
+      }
+    }
+    apuntarFolio(actual.folio);
+    window.open(`/cotizacion?c=${codificarCotizacion(actual)}`, '_blank', 'noopener');
   }
 
   function verRetorno() {
@@ -321,6 +369,7 @@ function CotizadorInterno({ sesion, onSalir }: { sesion: Sesion; onSalir: () => 
 
   function nueva() {
     if (!window.confirm('¿Empezar una cotización nueva? Se borra lo que llevas capturado.')) return;
+    apuntarFolio(b.folio);
     setB(borradorNuevo(b.vendedor));
     setEstado(null);
     setMargen(null);

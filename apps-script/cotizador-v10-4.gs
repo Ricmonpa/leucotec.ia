@@ -44,6 +44,51 @@ var EDITORES = [
 
 var VERDE = '#D9EAD3';
 
+// El folio se CAPTURA, no se calcula. Antes se armaba dentro de
+// COTIZACIONURL y Sheets guardaba el resultado en cache: la hoja repetia el
+// mismo folio durante dias, con cotizaciones distintas. Ahora vive en su
+// celda, se escribe una sola vez desde el menu y ya no se mueve aunque se
+// editen dosis o precios.
+var CELDA_FOLIO = 'B44';
+
+// Lo que devuelve el enlace cuando todavia no hay folio. Tiene que decirlo,
+// no inventarlo: dos cotizaciones con el mismo numero descuadran el control.
+var AVISO_FOLIO = 'Genera el folio desde el menu Leucotec';
+
+/**
+ * Folio del dia con dos digitos al final: COT-20261005-1430-01.
+ *
+ * Los dos digitos existen porque dos vendedores pueden cotizar en el mismo
+ * minuto. Si el folio que ya trae la celda es de este mismo minuto, se le
+ * suma uno; si no, arranca en 01.
+ */
+function folioSiguiente(h) {
+  var tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  var base = 'COT-' + Utilities.formatDate(new Date(), tz, 'yyyyMMdd-HHmm');
+  var previo = String(h.getRange(CELDA_FOLIO).getValue() || '').trim();
+  var n = 1;
+  if (previo.indexOf(base) === 0) {
+    n = (Number(previo.slice(base.length + 1)) || 0) + 1;
+  }
+  return base + '-' + (n < 10 ? '0' : '') + n;
+}
+
+/**
+ * Menu Leucotec > Cotizacion nueva. Escribe el folio siguiente y limpia al
+ * cliente: lo que sigue capturado son las vacunas y la logistica, que el
+ * vendedor suele reaprovechar.
+ */
+function cotizacionNueva() {
+  var h = hojaCotizador();
+  var folio = folioSiguiente(h);
+  h.getRange(CELDA_FOLIO).setValue(folio);
+  h.getRange('B46').clearContent();
+  SpreadsheetApp.flush();
+  SpreadsheetApp.getActiveSpreadsheet().toast(
+    'Folio ' + folio + '. Captura el cliente y las vacunas.', 'Leucotec', 6
+  );
+}
+
 /** La hoja del cotizador, sin depender de como se llame exactamente. */
 function hojaCotizador() {
   var libro = SpreadsheetApp.getActiveSpreadsheet();
@@ -147,10 +192,8 @@ function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente
     ]);
   }
 
-  var ahora = new Date();
-  var dos2 = function (n) { return (n < 10 ? '0' : '') + n; };
-  var folio = 'COT-' + ahora.getFullYear() + dos2(ahora.getMonth() + 1) + dos2(ahora.getDate()) +
-    '-' + dos2(ahora.getHours()) + dos2(ahora.getMinutes());
+  var folio = String(h.getRange(CELDA_FOLIO).getValue() || '').trim();
+  if (!folio) return AVISO_FOLIO;
 
   var carga = {
     f: folio,
@@ -184,6 +227,15 @@ function prepararEnlace() {
   h.getRange('A45:F53').breakApart();
   h.getRange('A45:F53').clearContent().clearFormat();
 
+  // El folio vive arriba del bloque del cliente. Si ya hay uno, se respeta:
+  // una cotizacion a medias no debe cambiar de numero.
+  h.getRange('A44').setValue('FOLIO').setFontWeight('bold');
+  if (!String(h.getRange(CELDA_FOLIO).getValue() || '').trim()) {
+    h.getRange(CELDA_FOLIO).setValue(folioSiguiente(h));
+  }
+  h.getRange(CELDA_FOLIO).setBackground(VERDE)
+    .setBorder(true, true, true, true, true, true);
+
   h.getRange('A45').setValue('DATOS DEL CLIENTE').setFontWeight('bold');
   h.getRange('A46:A48').setValues([['CLIENTE'], ['No. DE EMPLEADOS'], ['COSTO DIA / EMPLEADO']])
     .setFontWeight('bold');
@@ -195,13 +247,14 @@ function prepararEnlace() {
     .setBorder(true, true, true, true, true, true);
 
   // El boton que importa: la cotizacion es el producto final del proceso.
-  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B46:B48;I5:I12';
+  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B44:B48;I5:I12';
   h.getRange('A50').setValue('COTIZACION').setFontWeight('bold');
   h.getRange('B50:F50').merge();
   h.getRange('B50')
     // LET calcula el enlace una sola vez; sin eso se arma dos veces por celda.
     .setFormula('=LET(u;COTIZACIONURL(' + deps + ');' +
-      'IF(u="";"Captura al menos una vacuna con dosis";HYPERLINK(u;"IMPRIMIR COTIZACION")))')
+      'IF(u="";"Captura al menos una vacuna con dosis";' +
+      'IF(LEFT(u;4)<>"http";u;HYPERLINK(u;"IMPRIMIR COTIZACION"))))')
     .setBackground('#DC052B').setFontColor('#FFFFFF').setFontWeight('bold')
     .setFontSize(13).setHorizontalAlignment('center').setVerticalAlignment('middle');
   h.setRowHeight(50, 36);
@@ -213,7 +266,8 @@ function prepararEnlace() {
   h.getRange('B52:F52').merge();
   h.getRange('B52')
     .setFormula('=LET(u;COTIZACIONURL(' + deps + ');' +
-      'IF(u="";"";HYPERLINK(SUBSTITUTE(u;"/cotizacion?";"/propuesta?");"VER RETORNO DE LA INVERSION")))')
+      'IF(u="";"";IF(LEFT(u;4)<>"http";u;' +
+      'HYPERLINK(SUBSTITUTE(u;"/cotizacion?";"/propuesta?");"VER RETORNO DE LA INVERSION"))))')
     .setBackground('#1F2A44').setFontColor('#FFFFFF').setFontWeight('bold')
     .setFontSize(11).setHorizontalAlignment('center').setVerticalAlignment('middle');
   h.setRowHeight(52, 30);
@@ -247,7 +301,8 @@ function protegerHoja() {
     h.getRange('H30:I33'), // enfermeras por dia y jornadas
     h.getRange('G38:G41'), // transporte
     h.getRange('I38:I41'), // comidas
-    h.getRange('B46:B48')  // datos para el ROI
+    h.getRange('B46:B48'), // datos para el ROI
+    h.getRange(CELDA_FOLIO) // folio: lo escribe el menu, que corre como el vendedor
   ]);
 
   prot.addEditors(EDITORES);
@@ -545,6 +600,8 @@ function conectar() {
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Leucotec')
+    .addItem('Cotizacion nueva (folio nuevo)', 'cotizacionNueva')
+    .addSeparator()
     .addItem('Conectar con el simulador', 'conectar')
     .addToUi();
 }

@@ -56,13 +56,28 @@ export interface CotizacionImprimible {
   costoDia?: number;
 }
 
-/** Folio con fecha y hora: único en la práctica y legible para el cliente. */
-export function nuevoFolio(fecha: Date = new Date()): string {
+/**
+ * Folio con fecha, hora y dos dígitos: COT-20261005-1430-01.
+ *
+ * Los dos dígitos existen porque dos vendedores pueden generar una cotización
+ * en el mismo minuto. `usados` son los folios que ya se ocuparon en esta
+ * puerta; se busca el primer sufijo libre.
+ *
+ * El folio se asigna UNA vez y no se vuelve a calcular: si cambiara al editar
+ * dosis o precios, la cotización impresa dejaría de coincidir con la que quedó
+ * en el historial.
+ */
+export function nuevoFolio(fecha: Date = new Date(), usados: string[] = []): string {
   const d = (n: number) => String(n).padStart(2, '0');
-  return (
+  const base =
     `COT-${fecha.getFullYear()}${d(fecha.getMonth() + 1)}${d(fecha.getDate())}` +
-    `-${d(fecha.getHours())}${d(fecha.getMinutes())}`
-  );
+    `-${d(fecha.getHours())}${d(fecha.getMinutes())}`;
+  for (let n = 1; n < 100; n++) {
+    const folio = `${base}-${d(n)}`;
+    if (!usados.includes(folio)) return folio;
+  }
+  // 99 cotizaciones en el mismo minuto no pasa; si pasara, los segundos rompen el empate.
+  return `${base}-${d(fecha.getSeconds())}`;
 }
 
 export interface ResumenCotizacion {
