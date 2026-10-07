@@ -49,7 +49,7 @@ export function propuestaDesdeCotizacion(c: CotizacionImprimible): PropuestaRoi 
   // número. (Cleide y Martin, oct 2026.)
   const grupos = new Map<
     string,
-    { productos: string[]; personas: number; importe: number; conocida: boolean }
+    { productos: string[]; personas: number; importe: number; conocida: boolean; codigo?: string }
   >();
   for (const l of resumen.lineas) {
     // Primero por código (enlaces nuevos); los enlaces viejos traen sólo el
@@ -57,6 +57,9 @@ export function propuestaDesdeCotizacion(c: CotizacionImprimible): PropuestaRoi 
     const enfermedad = datosDe(l.codigo).enfermedad ?? enfermedadDeProducto(l.producto);
     const clave = enfermedad ?? l.producto;
     const g = grupos.get(clave) ?? { productos: [], personas: 0, importe: 0, conocida: !!enfermedad };
+    // El código del primer renglón manda: de ahí salen efectividad y años de
+    // protección de la IPP del biológico.
+    if (!g.codigo && l.codigo) g.codigo = l.codigo;
     if (!g.productos.includes(l.producto)) g.productos.push(l.producto);
     g.personas += l.personas ?? l.dosis;
     g.importe += l.importe;
@@ -92,7 +95,19 @@ export function propuestaDesdeCotizacion(c: CotizacionImprimible): PropuestaRoi 
       pctPoblacionRiesgo: g.personas / numEmpleados,
     };
 
-    if (g.conocida && base) return { ...base, ...cotizado };
+    if (g.conocida && base) {
+      // La IPP del biológico manda sobre el promedio de la enfermedad.
+      const ipp = datosDe(g.codigo);
+      const deLaIpp = {
+        ...(ipp.efectividad !== undefined ? { efectividad: ipp.efectividad } : {}),
+        ...(ipp.aniosProteccion !== undefined ? { aniosProteccion: ipp.aniosProteccion } : {}),
+      };
+      // Una vacuna sin modelo de ausentismo anual (VPH: previene cáncer, no
+      // días de incapacidad) no puede mostrar supuestos de contagio: la
+      // página los pone en "—" y avisa que entra sólo como inversión.
+      if (!base.tasaContagio) sinModelo.push(...g.productos);
+      return { ...base, ...cotizado, ...deLaIpp };
+    }
 
     sinModelo.push(...g.productos);
     return {

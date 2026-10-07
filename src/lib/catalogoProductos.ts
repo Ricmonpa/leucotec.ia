@@ -110,6 +110,10 @@ export function enfermedadDeProducto(producto: string): string | undefined {
  * - esquema: dosis por persona del esquema completo. Un número si es igual
  *   para todos, o una tabla por rango de edad. Es dato clínico del
  *   laboratorio, no comercial: no se negocia ni se oculta.
+ * - efectividad y aniosProteccion: los de la IPP del biológico, que manda
+ *   sobre el promedio de la enfermedad (Cleide, oct 2026: "la efectividad se
+ *   tiene que ajustar según la IPP"). Si el producto no los trae, se usa el
+ *   supuesto de la enfermedad.
  * - intervalos: cuándo se aplica cada dosis del esquema. Sale impreso en la
  *   cotización (Cleide, oct 2026): el cliente necesita saber en qué meses
  *   vuelve el equipo de enfermería.
@@ -120,6 +124,8 @@ export interface DatosProducto {
   dosisPorCaja?: number;
   esquema?: number | Record<string, number>;
   intervalos?: string | Record<string, string>;
+  efectividad?: number;
+  aniosProteccion?: number;
 }
 
 export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
@@ -127,8 +133,16 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
   BIS120026: { precio: 330, enfermedad: 'Influenza' }, // Fluzactal Tetra
   BIS120089: { precio: 1800, enfermedad: 'Neumococo' }, // Prevenar 20
   BIS120028: { precio: 1400, enfermedad: 'Neumococo' }, // Pulmovax
-  // Shingrix: 2 dosis en los meses 0 y 2.
-  BIS120078: { precio: 3500, enfermedad: 'Herpes Zóster', esquema: 2, intervalos: 'meses 0 y 2' },
+  // Shingrix: 2 dosis en los meses 0 y 2. Su IPP reporta 97% de eficacia en
+  // adultos de 50 a 69 años y protección sostenida a 10 años.
+  BIS120078: {
+    precio: 3500,
+    enfermedad: 'Herpes Zóster',
+    esquema: 2,
+    intervalos: 'meses 0 y 2',
+    efectividad: 0.97,
+    aniosProteccion: 10,
+  },
   BIS120083: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB adulto (ND)
   BIS120084: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB pediátrico (ND)
   'TMP-COMIRNATY-1': { enfermedad: 'COVID-19' },
@@ -153,6 +167,10 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
     enfermedad: 'VPH',
     esquema: { '9 a 14 años': 2, '15 años y más': 3 },
     intervalos: { '9 a 14 años': 'meses 0 y 5', '15 años y más': 'meses 0, 2 y 3' },
+    // Su IPP reporta eficacia del 97% contra la enfermedad por los tipos que
+    // cubre, con protección demostrada a 10 años.
+    efectividad: 0.97,
+    aniosProteccion: 10,
   },
   BIS120001: { precio: 650, enfermedad: 'Td / DPT' }, // Adacel Boost
   BIS120006: { precio: 610, enfermedad: 'Td / DPT' }, // Boostrix

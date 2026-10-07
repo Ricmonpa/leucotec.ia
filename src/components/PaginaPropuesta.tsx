@@ -273,12 +273,20 @@ export function PaginaPropuesta() {
           {sinModelo.length > 0 && (
             <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-700">
               {sinModelo.join(', ')} {sinModelo.length === 1 ? 'entra' : 'entran'} al análisis sólo como
-              inversión: no {sinModelo.length === 1 ? 'tiene' : 'tienen'} un modelo de riesgo laboral,
-              así que no suma ahorro. El retorno real es igual o mayor al que se muestra.
+              inversión: {sinModelo.length === 1 ? 'previene' : 'previenen'} enfermedad grave a largo
+              plazo, no días de incapacidad del año, así que no suma ahorro en este cálculo. El retorno
+              real es igual o mayor al que se muestra.
             </p>
           )}
 
           <p className="mt-4 text-[11px] leading-relaxed text-slate-400">
+            La <strong className="font-semibold text-slate-500">efectividad</strong> y los{' '}
+            <strong className="font-semibold text-slate-500">años de protección</strong> son los de la
+            IPP de cada biológico. El{' '}
+            <strong className="font-semibold text-slate-500">costo médico por caso</strong> es un
+            supuesto fijo de Grupo Leucotec e igual para todas las propuestas.
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
             Análisis ilustrativo con base en supuestos promedio. No constituye asesoría fiscal; confirme
             el tratamiento de la deducción con su área contable. Montos en pesos mexicanos, antes de IVA.
           </p>
