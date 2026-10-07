@@ -110,12 +110,16 @@ export function enfermedadDeProducto(producto: string): string | undefined {
  * - esquema: dosis por persona del esquema completo. Un número si es igual
  *   para todos, o una tabla por rango de edad. Es dato clínico del
  *   laboratorio, no comercial: no se negocia ni se oculta.
+ * - intervalos: cuándo se aplica cada dosis del esquema. Sale impreso en la
+ *   cotización (Cleide, oct 2026): el cliente necesita saber en qué meses
+ *   vuelve el equipo de enfermería.
  */
 export interface DatosProducto {
   precio?: number;
   enfermedad?: string;
   dosisPorCaja?: number;
   esquema?: number | Record<string, number>;
+  intervalos?: string | Record<string, string>;
 }
 
 export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
@@ -123,7 +127,8 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
   BIS120026: { precio: 330, enfermedad: 'Influenza' }, // Fluzactal Tetra
   BIS120089: { precio: 1800, enfermedad: 'Neumococo' }, // Prevenar 20
   BIS120028: { precio: 1400, enfermedad: 'Neumococo' }, // Pulmovax
-  BIS120078: { precio: 3500, enfermedad: 'Herpes Zóster', esquema: 2 }, // Shingrix
+  // Shingrix: 2 dosis en los meses 0 y 2.
+  BIS120078: { precio: 3500, enfermedad: 'Herpes Zóster', esquema: 2, intervalos: 'meses 0 y 2' },
   BIS120083: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB adulto (ND)
   BIS120084: { precio: 1060, enfermedad: 'COVID-19', dosisPorCaja: 10 }, // Comirnaty XBB pediátrico (ND)
   'TMP-COMIRNATY-1': { enfermedad: 'COVID-19' },
@@ -141,8 +146,14 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
   BIS120009: { precio: 615, enfermedad: 'Hepatitis A/B' }, // Engerix-B adulto
   BIS120040: { enfermedad: 'Hepatitis A/B' }, // Twinrix
   BIS12011: { precio: 3070, enfermedad: 'Fiebre Amarilla' }, // Stamaril
-  // Gardasil 9: 2 dosis de 9 a 14 años, 3 de los 15 en adelante.
-  BIS120081: { precio: 3700, enfermedad: 'VPH', esquema: { '9 a 14 años': 2, '15 años y más': 3 } },
+  // Gardasil 9: 2 dosis de 9 a 14 años, 3 de los 15 en adelante. Los meses
+  // son los que indicó Leucotec (Cleide, oct 2026).
+  BIS120081: {
+    precio: 3700,
+    enfermedad: 'VPH',
+    esquema: { '9 a 14 años': 2, '15 años y más': 3 },
+    intervalos: { '9 a 14 años': 'meses 0 y 5', '15 años y más': 'meses 0, 2 y 3' },
+  },
   BIS120001: { precio: 650, enfermedad: 'Td / DPT' }, // Adacel Boost
   BIS120006: { precio: 610, enfermedad: 'Td / DPT' }, // Boostrix
   BIS120019: { precio: 3000, enfermedad: 'Meningococo' }, // Menactra
@@ -187,3 +198,11 @@ export function dosisDeEsquema(codigo?: string, rango?: string): number {
 
 /** True si el producto se puede cotizar con esquema completo. */
 export const tieneEsquema = (codigo?: string): boolean => dosisDeEsquema(codigo) > 1;
+
+/** Meses en que se aplica cada dosis del esquema; vacío si no aplica. */
+export function intervalosDeEsquema(codigo?: string, rango?: string): string {
+  const i = datosDe(codigo).intervalos;
+  if (!i) return '';
+  if (typeof i === 'string') return i;
+  return i[rango ?? ''] ?? '';
+}

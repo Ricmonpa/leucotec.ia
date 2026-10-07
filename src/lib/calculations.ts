@@ -84,7 +84,16 @@ export interface Sede {
   transporte: number;
   /** Alimentación del equipo (su referencia: 120 desayuno, 150 comida, 130 cena). */
   comidas: number;
+  /**
+   * Dónde se aplica: en el domicilio de la empresa o en un centro de
+   * vacunación de Leucotec. Sale impreso en la cotización (Cleide, oct 2026).
+   * No cambia ningún costo.
+   */
+  punto?: PuntoAtencion;
 }
+
+/** Punto de atención de una sede. */
+export type PuntoAtencion = 'Domicilio empresarial' | 'Centro de vacunación';
 
 /** Una sede vacía, lista para capturar. */
 export function sedeNueva(destino = ''): Sede {
@@ -97,6 +106,7 @@ export function sedeNueva(destino = ''): Sede {
     diasVacunacion: 1,
     transporte: 0,
     comidas: 0,
+    punto: 'Domicilio empresarial',
   };
 }
 
@@ -216,6 +226,7 @@ function calcularSede(sede: Sede): CostoSede {
     destino: sede.destino,
     dosis: sede.dosis,
     foranea: sede.foranea,
+    punto: sede.punto,
     jornadaLarga: sede.jornadaLarga,
     enfermerasPorDia: porDia,
     diasVacunacion: dias,
@@ -333,6 +344,8 @@ export interface CostoSede {
   destino: string;
   dosis: number;
   foranea: boolean;
+  /** Dónde se aplica. Sólo viaja al documento: no mueve ningún costo. */
+  punto?: PuntoAtencion;
   jornadaLarga: boolean;
   enfermerasPorDia: number;
   diasVacunacion: number;

@@ -9,7 +9,7 @@
 
 import { MapPin, Plus, X } from 'lucide-react';
 import { Field } from './ui/Field';
-import { formatCurrency, type CostoLogistica, type Sede } from '../lib/calculations';
+import { formatCurrency, type CostoLogistica, type PuntoAtencion, type Sede } from '../lib/calculations';
 import { MAX_SEDES } from '../hooks/useRoiCalculator';
 
 interface SedesCampanaProps {
@@ -106,6 +106,26 @@ export function SedesCampana({
                     </span>
                   </button>
                 )}
+              </div>
+
+              {/* Dónde se aplica. No cambia ningún costo; sale impreso en la
+                  cotización (Cleide, oct 2026). */}
+              <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                <span className="mr-1 text-slate-400">Se aplica en:</span>
+                {(['Domicilio empresarial', 'Centro de vacunación'] as PuntoAtencion[]).map((opcion) => (
+                  <button
+                    key={opcion}
+                    type="button"
+                    onClick={() => setSedeCampo(i, 'punto', opcion)}
+                    className={`rounded-full px-2.5 py-0.5 font-semibold transition-colors ${
+                      (sede.punto ?? 'Domicilio empresarial') === opcion
+                        ? 'bg-brand-dark text-white'
+                        : 'bg-white text-slate-500 ring-1 ring-slate-200 hover:text-brand-dark'
+                    }`}
+                  >
+                    {opcion}
+                  </button>
+                ))}
               </div>
 
               <div className="grid grid-cols-2 gap-2">

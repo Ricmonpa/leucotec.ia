@@ -198,7 +198,7 @@ function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente
   }
   if (!lineas.length) return '';
 
-  var sedes = h.getRange('G22:J25').getValues(); // sede, dosis, destino, horas
+  var sedes = h.getRange('G22:K25').getValues(); // sede, dosis, destino, horas, punto
   var enf = h.getRange('H30:I33').getValues();   // enfermeras por dia, dias
   var via = h.getRange('G38:I41').getValues();   // transporte, covid, comidas
   var s = [];
@@ -213,7 +213,9 @@ function COTIZACIONURL(vacunas, precios, sedesCaptura, equipo, viaticos, cliente
       Number(enf[i][0]) || 0,
       Number(enf[i][1]) || 0,
       Number(via[i][0]) || 0,
-      Number(via[i][2]) || 0
+      Number(via[i][2]) || 0,
+      // "C" = centro de vacunacion; si no, domicilio de la empresa.
+      String(sedes[i][4] || '').indexOf('Centro') === 0 ? 'C' : 'D'
     ]);
   }
 
@@ -284,7 +286,7 @@ function prepararEnlace() {
     .setBorder(true, true, true, true, true, true);
 
   // El boton que importa: la cotizacion es el producto final del proceso.
-  var deps = 'B5:C12;G5:G12;G22:J25;H30:I33;G38:I41;B43:B48;I5:I12;L5:N12';
+  var deps = 'B5:C12;G5:G12;G22:K25;H30:I33;G38:I41;B43:B48;I5:I12;L5:N12';
   h.getRange('A50').setValue('COTIZACION').setFontWeight('bold');
   h.getRange('B50:F50').merge();
   h.getRange('B50')
@@ -335,6 +337,7 @@ function protegerHoja() {
     h.getRange('G5:G12'),  // precio unitario
     h.getRange('I5:I12'),  // unidad: DOSIS o CAJA 10
     h.getRange('G22:J25'), // sede, dosis, destino y horas
+    h.getRange(CELDAS_PUNTO), // donde se aplica
     h.getRange('H30:I33'), // enfermeras por dia y jornadas
     h.getRange('G38:G41'), // transporte
     h.getRange('I38:I41'), // comidas
@@ -474,6 +477,11 @@ var ESQUEMAS = [
   ['BIS120078', '', 2]               // Shingrix
 ];
 var RANGOS_EDAD = ['9 a 14 años', '15 años y más'];
+
+// Donde se aplica cada sede (Cleide, oct 2026). Es dato del documento: no
+// mueve ningun costo. Va en K22:K25, junto a las demas columnas de sede.
+var CELDAS_PUNTO = 'K22:K25';
+var PUNTOS = ['Domicilio empresarial', 'Centro de vacunación'];
 var PRODUCTO_CON_CAJA = 'COMIRNATY Omicron XBB';
 
 /** Factor de la fila f: 10 si esa fila se capturo en cajas de Comirnaty. */
@@ -679,6 +687,19 @@ function aplicarEsquemas() {
     );
   }
   h.getRange('N5:N12').setHorizontalAlignment('center').setFontColor('#666666')
+    .setBorder(true, true, true, true, true, true);
+
+  // Punto de atencion de cada sede: domicilio de la empresa o centro de
+  // vacunacion. Sale impreso en la cotizacion.
+  h.getRange('J21').copyTo(h.getRange('K21'), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  h.getRange('K21').setValue('PUNTO DE ATENCION');
+  var punto = h.getRange(CELDAS_PUNTO);
+  punto.setValues(punto.getValues().map(function (r) {
+    return [PUNTOS.indexOf(String(r[0] || '').trim()) === -1 ? PUNTOS[0] : r[0]];
+  }));
+  punto.setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireValueInList(PUNTOS, true).setAllowInvalid(false).build());
+  punto.setBackground(VERDE).setHorizontalAlignment('center')
     .setBorder(true, true, true, true, true, true);
 }
 

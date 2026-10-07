@@ -152,8 +152,9 @@ interface CargaUtil {
   // producto, dosis, precio, código, personas, dosis por persona, rango
   l?: [string, number, number, string?, number?, number?, string?][];
   // destino, dosis, foránea (1/0), jornada larga (1/0), enfermeras/día,
-  // jornadas, transporte, comidas
-  s?: [string, number, number, number, number, number, number, number][];
+  // jornadas, transporte, comidas y punto de atención ("C" = centro de
+  // vacunación; cualquier otra cosa, domicilio de la empresa)
+  s?: [string, number, number, number, number, number, number, number, string?][];
   cl?: number; // cobrar logística (1/0)
   pg?: string; // condición de pago: "Contado" o "Crédito"
   d?: number; // costo por día de ausencia de un empleado
@@ -192,16 +193,13 @@ export function codificarCotizacion(c: CotizacionImprimible): string {
           ? [l.producto, l.dosis, l.precio, l.codigo]
           : [l.producto, l.dosis, l.precio],
     ),
-    s: c.sedes.map((s) => [
-      s.destino,
-      s.dosis,
-      s.foranea ? 1 : 0,
-      s.jornadaLarga ? 1 : 0,
-      s.enfermerasPorDia,
-      s.diasVacunacion,
-      s.transporte,
-      s.comidas,
-    ]),
+    s: c.sedes.map((s) =>
+      s.punto === 'Centro de vacunación'
+        ? [s.destino, s.dosis, s.foranea ? 1 : 0, s.jornadaLarga ? 1 : 0,
+          s.enfermerasPorDia, s.diasVacunacion, s.transporte, s.comidas, 'C']
+        : [s.destino, s.dosis, s.foranea ? 1 : 0, s.jornadaLarga ? 1 : 0,
+          s.enfermerasPorDia, s.diasVacunacion, s.transporte, s.comidas],
+    ),
     cl: c.cobrarLogistica ? 1 : 0,
     ...(c.pago ? { pg: c.pago } : {}),
     d: c.costoDia || 0,
@@ -241,7 +239,7 @@ export function leerCotizacionImprimible(
       ...(num(porPersona) > 1 ? { dosisPorPersona: num(porPersona) } : {}),
       ...(rango ? { rango: String(rango) } : {}),
     })),
-    sedes: (carga.s ?? []).map(([destino, dosis, foranea, larga, enf, dias, transporte, comidas]) => ({
+    sedes: (carga.s ?? []).map(([destino, dosis, foranea, larga, enf, dias, transporte, comidas, punto]) => ({
       destino: String(destino || '').trim(),
       dosis: num(dosis),
       foranea: foranea === 1,
@@ -250,6 +248,7 @@ export function leerCotizacionImprimible(
       diasVacunacion: num(dias),
       transporte: num(transporte),
       comidas: num(comidas),
+      punto: punto === 'C' ? 'Centro de vacunación' : 'Domicilio empresarial',
     })),
     cobrarLogistica: carga.cl === 1,
     ...(carga.pg === 'Contado' || carga.pg === 'Crédito' ? { pago: carga.pg } : {}),

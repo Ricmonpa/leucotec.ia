@@ -21,6 +21,7 @@
 // ---------------------------------------------------------------------------
 
 import { formatNumber } from '../lib/calculations';
+import { intervalosDeEsquema } from '../lib/catalogoProductos';
 import {
   resumirCotizacion,
   type CotizacionImprimible,
@@ -100,6 +101,11 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
 
   const sedes = r.logistica.sedes;
   const varias = sedes.length > 1;
+  // Dónde se aplica cambia cómo se describe la campaña: no siempre va el
+  // equipo al domicilio del cliente (Cleide, oct 2026).
+  const enCentro = (x: (typeof sedes)[number]) => x.punto === 'Centro de vacunación';
+  const hayCentro = sedes.some(enCentro);
+  const soloCentro = sedes.length > 0 && sedes.every(enCentro);
   const nombresSedes = sedes.map((s, i) => s.destino || (varias ? `Sede ${i + 1}` : 'Por definir'));
   const productos = r.lineas.map((l) => l.producto);
   const cliente = cotizacion.cliente || 'su empresa';
@@ -176,7 +182,12 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
         Campaña de vacunación para <strong className="text-brand-dark">{cliente}</strong> con{' '}
         <strong className="text-brand-dark">{formatNumber(r.dosisTotales)} dosis</strong> de{' '}
         {enLista(productos)}, aplicadas en{' '}
-        {varias ? `${sedes.length} sedes: ${enLista(nombresSedes)}` : `la sede ${nombresSedes[0] ?? ''}`}. Grupo Leucotec lleva a sus instalaciones al personal de enfermería
+        {varias ? `${sedes.length} sedes: ${enLista(nombresSedes)}` : `la sede ${nombresSedes[0] ?? ''}`}.{' '}
+        {soloCentro
+          ? 'La aplicación se realiza en el centro de vacunación de Grupo Leucotec'
+          : hayCentro
+            ? 'Grupo Leucotec atiende en su centro de vacunación y lleva el personal de enfermería al domicilio de la empresa'
+            : 'Grupo Leucotec lleva a sus instalaciones al personal de enfermería'}{' '}
         durante {formatNumber(r.jornadas)} {plural(r.jornadas, 'jornada', 'jornadas')}, con todos los
         insumos de aplicación y el manejo certificado de los residuos biológico-infecciosos.
         {varias && ' Cada sede cuenta con su propio equipo, por lo que pueden operar al mismo tiempo.'}
@@ -212,6 +223,9 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
                   <span className="block font-normal text-slate-500">
                     Esquema completo · {formatNumber(l.personas ?? 0)} personas ×{' '}
                     {l.dosisPorPersona} dosis{l.rango ? ` · ${l.rango}` : ''}
+                    {intervalosDeEsquema(l.codigo, l.rango)
+                      ? ` · aplicación en ${intervalosDeEsquema(l.codigo, l.rango)}`
+                      : ''}
                   </span>
                 )}
               </td>
@@ -231,18 +245,45 @@ export function CotizacionDetallada({ cotizacion, className = '' }: CotizacionDe
         </tbody>
       </table>
 
+      {/* Intervalos de aplicación: el cliente necesita saber en qué meses
+          vuelve el equipo de enfermería (Cleide, oct 2026). */}
+      {r.lineas.some((l) => (l.dosisPorPersona ?? 1) > 1) && (
+        <div className="mt-2 break-inside-avoid rounded border border-slate-200 bg-slate-50 px-3 py-2">
+          <p className="text-[9.5px] font-bold uppercase tracking-wide text-brand-dark">
+            Intervalos de aplicación del esquema
+          </p>
+          <ul className="ml-4 mt-1 list-disc space-y-0.5 text-[9.5px] text-slate-500">
+            {r.lineas
+              .filter((l) => (l.dosisPorPersona ?? 1) > 1)
+              .map((l, i) => (
+                <li key={`${l.producto}-esquema-${i}`}>
+                  <strong className="text-brand-dark">{l.producto}</strong>
+                  {l.rango ? ` · pacientes de ${l.rango}` : ''}: esquema de {l.dosisPorPersona}{' '}
+                  dosis
+                  {intervalosDeEsquema(l.codigo, l.rango)
+                    ? ` en los ${intervalosDeEsquema(l.codigo, l.rango)}`
+                    : ''}
+                  .
+                </li>
+              ))}
+            <li>
+              Las jornadas de cada dosis se programan de común acuerdo, respetando esos intervalos.
+            </li>
+          </ul>
+        </div>
+      )}
+
       {/* ---------------- 3. Servicio de aplicación ---------------- */}
       <Seccion n={3} titulo="Servicio de aplicación en sitio" nota={varias ? 'Desglose por sede' : undefined} />
       {sedes.map((s, i) => (
         <div key={i} className="mb-3 break-inside-avoid">
-          {varias && (
-            <p className="mb-1 mt-2 text-[10px] font-bold text-brand-dark">
-              {nombresSedes[i]}
-              <span className="ml-2 font-normal text-slate-400">
-                {formatNumber(s.dosis)} dosis · {s.foranea ? 'sede foránea' : 'sede local'}
-              </span>
-            </p>
-          )}
+          <p className="mb-1 mt-2 text-[10px] font-bold text-brand-dark">
+            {varias ? nombresSedes[i] : 'Punto de atención'}
+            <span className="ml-2 font-normal text-slate-400">
+              {varias ? `${formatNumber(s.dosis)} dosis · ${s.foranea ? 'sede foránea' : 'sede local'} · ` : ''}
+              {s.punto ?? 'Domicilio empresarial'}
+            </span>
+          </p>
           <table className="w-full border-collapse">
             <thead>
               <tr>
