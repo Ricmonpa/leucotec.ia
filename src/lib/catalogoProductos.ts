@@ -161,12 +161,13 @@ export const CATALOGO_POR_CODIGO: Record<string, DatosProducto> = {
   BIS120040: { enfermedad: 'Hepatitis A/B' }, // Twinrix
   BIS12011: { precio: 3070, enfermedad: 'Fiebre Amarilla' }, // Stamaril
   // Gardasil 9: 2 dosis de 9 a 14 años, 3 de los 15 en adelante. Los meses
-  // son los que indicó Leucotec (Cleide, oct 2026).
+  // son los que confirmo Leucotec el 7 de octubre de 2026: 0 y 5 para el
+  // esquema de dos dosis, 0, 2 y 6 para el de tres.
   BIS120081: {
     precio: 3700,
     enfermedad: 'VPH',
     esquema: { '9 a 14 años': 2, '15 años y más': 3 },
-    intervalos: { '9 a 14 años': 'meses 0 y 5', '15 años y más': 'meses 0, 2 y 3' },
+    intervalos: { '9 a 14 años': 'meses 0 y 5', '15 años y más': 'meses 0, 2 y 6' },
     // Su IPP reporta eficacia del 97% contra la enfermedad por los tipos que
     // cubre, con protección demostrada a 10 años.
     efectividad: 0.97,
